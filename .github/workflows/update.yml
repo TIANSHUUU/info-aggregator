@@ -6,13 +6,21 @@ on:
     - cron: '0 3 * * *'
   workflow_dispatch:  # 允许手动触发
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
 jobs:
-  fetch-and-deploy:
+  fetch-build-deploy:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pages: write
-      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Checkout
@@ -43,21 +51,14 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
-          commit_message: "🔄 自动更新 ${{ github.run_id }}"
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
 
-  # 每周五单独运行 Economist 下载（本地 Mac 执行，此步骤仅作记录）
-  # 如需在 Actions 下载，取消注释以下 job
-  # economist-download:
-  #   runs-on: ubuntu-latest
-  #   if: github.event.schedule == '0 3 * * 5'  # 周五
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - uses: actions/setup-python@v5
-  #       with: { python-version: '3.12' }
-  #     - run: pip install requests
-  #     - run: python scripts/fetch_economist.py
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './dist'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
