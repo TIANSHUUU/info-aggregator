@@ -21,7 +21,7 @@ export default function StockBar() {
 
   return (
     <div className="card mb-4">
-      <div className="section-title">实时行情</div>
+      <h2 className="section-title">实时行情</h2>
 
       {loading && (
         <div className="flex gap-4">
@@ -48,20 +48,20 @@ export default function StockBar() {
         </div>
       )}
 
-      <p className="text-xs text-gray-300 mt-2 text-right">每日 11:00 更新</p>
+      <p className="text-xs text-gray-400 mt-3 text-right">每日 11:00 更新</p>
     </div>
   )
 }
 
 function QuoteChip({ stock }) {
   const up    = stock.change >= 0
-  const color = up ? 'text-red-500' : 'text-green-600'
+  const color = up ? 'text-red-600' : 'text-emerald-700'
   const sign  = up ? '+' : ''
 
   return (
     <div className="flex flex-col items-center px-4 py-2 min-w-[90px]">
-      <span className="text-xs text-gray-400 mb-0.5">{stock.label}</span>
-      <span className="text-sm font-semibold tabular-nums">
+      <span className="text-xs text-gray-500 mb-0.5 font-medium">{stock.label}</span>
+      <span className="text-[15px] font-semibold tabular-nums text-gray-900">
         {stock.price.toLocaleString('zh-CN', { maximumFractionDigits: 2 })}
       </span>
       <span className={`text-xs tabular-nums ${color}`}>
