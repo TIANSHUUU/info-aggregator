@@ -17,6 +17,7 @@ import fetch_caixin
 import fetch_schwab
 import fetch_hket
 import fetch_mingpao
+import fetch_stocks
 
 DATA_DIR = Path(__file__).parent.parent / "public" / "data"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -45,6 +46,12 @@ def main():
         items = run_fetcher(key, func)
         path = DATA_DIR / f"{key}.json"
         path.write_text(json.dumps(items, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    # Stocks
+    stocks = run_fetcher("stocks", fetch_stocks.fetch)
+    (DATA_DIR / "stocks.json").write_text(
+        json.dumps(stocks, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
 
     # Write metadata
     meta = {"updated_at": datetime.now(timezone.utc).isoformat()}

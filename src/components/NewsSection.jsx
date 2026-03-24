@@ -5,7 +5,7 @@ import 'dayjs/locale/zh-cn'
 dayjs.extend(relativeTime)
 dayjs.locale('zh-cn')
 
-export default function NewsSection({ title, source, items = [], loading, error, showSummary = false }) {
+export default function NewsSection({ title, source, items = [], loading, error, showSummary = false, note }) {
   return (
     <div className="card mb-4">
       <div className="flex items-center justify-between mb-3">
@@ -32,6 +32,10 @@ export default function NewsSection({ title, source, items = [], loading, error,
 
       {error && (
         <p className="text-xs text-gray-400">暂时无法获取内容，请稍后重试。</p>
+      )}
+
+      {note && !loading && !error && items.length > 0 && (
+        <p className="text-xs text-amber-500 mb-2">{note}</p>
       )}
 
       {!loading && !error && items.length === 0 && (

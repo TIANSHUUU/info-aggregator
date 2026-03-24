@@ -1,0 +1,66 @@
+[
+  {
+    "symbol": "sh000001",
+    "label": "上证指数",
+    "market": "CN",
+    "price": 3849.34,
+    "change": 36.06,
+    "pct": 0.95
+  },
+  {
+    "symbol": "sz399001",
+    "label": "深证成指",
+    "market": "CN",
+    "price": 13380.05,
+    "change": 34.53,
+    "pct": 0.26
+  },
+  {
+    "symbol": "sz399006",
+    "label": "创业板",
+    "market": "CN",
+    "price": 3209.76,
+    "change": -25.46,
+    "pct": -0.79
+  },
+  {
+    "symbol": "sh000300",
+    "label": "沪深300",
+    "market": "CN",
+    "price": 4447.47,
+    "change": 29.48,
+    "pct": 0.67
+  },
+  {
+    "symbol": "sh000905",
+    "label": "中证500",
+    "market": "CN",
+    "price": 7498.49,
+    "change": 57.75,
+    "pct": 0.78
+  },
+  {
+    "symbol": "sh000688",
+    "label": "科创50",
+    "market": "CN",
+    "price": 1277.19,
+    "change": 15.76,
+    "pct": 1.25
+  },
+  {
+    "symbol": "^GSPC",
+    "label": "标普500",
+    "market": "US",
+    "price": 6581.0,
+    "change": 74.52,
+    "pct": 1.15
+  },
+  {
+    "symbol": "^IXIC",
+    "label": "纳斯达克",
+    "market": "US",
+    "price": 21946.76,
+    "change": 299.15,
+    "pct": 1.38
+  }
+]

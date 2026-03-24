@@ -1,6 +1,6 @@
 """
 财新 — JSON Feed via https://leafduo.com/caixin-feed/feed.json
-Returns articles published within the last 7 days.
+Returns articles published within the last 7 days, including summary.
 """
 from datetime import datetime, timedelta, timezone
 import requests
@@ -26,6 +26,7 @@ def fetch():
         title    = (entry.get("title") or "").strip()
         url      = (entry.get("url") or "").strip()
         date_str = entry.get("date_published") or ""
+        summary  = (entry.get("summary") or "").strip()
 
         if not title or not url:
             continue
@@ -38,6 +39,11 @@ def fetch():
         except Exception:
             date_iso = None
 
-        items.append({"title": title, "url": url, "date": date_iso})
+        items.append({
+            "title":   title,
+            "url":     url,
+            "date":    date_iso,
+            "summary": summary or None,
+        })
 
     return items
