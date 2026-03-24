@@ -1,0 +1,63 @@
+name: 每日数据更新 + 部署
+
+on:
+  schedule:
+    # 11:00 HKT = 03:00 UTC
+    - cron: '0 3 * * *'
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  fetch-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: scripts/requirements.txt
+
+      - name: Install Python dependencies
+        run: pip install -r scripts/requirements.txt
+
+      - name: Fetch all sources
+        run: python scripts/fetch_all.py
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          commit_message: "🔄 自动更新 ${{ github.run_id }}"
+
+  # 每周五单独运行 Economist 下载（本地 Mac 执行，此步骤仅作记录）
+  # 如需在 Actions 下载，取消注释以下 job
+  # economist-download:
+  #   runs-on: ubuntu-latest
+  #   if: github.event.schedule == '0 3 * * 5'  # 周五
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-python@v5
+  #       with: { python-version: '3.12' }
+  #     - run: pip install requests
+  #     - run: python scripts/fetch_economist.py
