@@ -17,7 +17,6 @@ const SOURCES = [
   { key: 'caixin',   title: '财新',            source: 'https://www.caixin.com/',                                          showSummary: true  },
   { key: 'schwab',   title: 'Charles Schwab', source: 'https://www.schwab.com/learn/market-commentary',                   showSummary: true, note: '日期信息暂不可用，以下为最新文章' },
   { key: 'hket',     title: 'HKET',           source: 'https://china.hket.com/srac002/%E5%8D%B3%E6%99%82%E4%B8%AD%E5%9C%8B', showSummary: false },
-  { key: 'mingpao',  title: '明报',            source: 'https://news.mingpao.com/',                                        showSummary: false },
 ]
 
 export default function App() {

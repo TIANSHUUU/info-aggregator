@@ -1,45 +1,47 @@
 """
-Stock indices — server-side fetch (no CORS issue).
+Stock indices & commodities — server-side fetch (no CORS issue).
 A股: Sina Finance API
-美股: Yahoo Finance API
+其余: Yahoo Finance API
 """
 import re
 import requests
 
-HEADERS = {
+SINA_HEADERS = {
     "User-Agent": "Mozilla/5.0 (compatible; InfoAggre/1.0)",
     "Referer": "https://finance.sina.com.cn",
 }
+YAHOO_HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; InfoAggre/1.0)"}
 
-# Sina symbol -> display label
+# Sina symbol -> (label, market)
 CN_SYMBOLS = {
-    "sh000001": "上证指数",
-    "sz399001": "深证成指",
-    "sz399006": "创业板",
-    "sh000300": "沪深300",
-    "sh000905": "中证500",
-    "sh000688": "科创50",
+    "sh000001": ("上证指数", "CN"),
+    "sz399001": ("深证成指", "CN"),
+    "sz399006": ("创业板",   "CN"),
+    "sh000300": ("沪深300",  "CN"),
+    "sh000905": ("中证500",  "CN"),
+    "sh000688": ("科创50",   "CN"),
 }
 
-# Yahoo symbol -> display label
-US_SYMBOLS = {
-    "^GSPC": "标普500",
-    "^IXIC": "纳斯达克",
+# Yahoo symbol -> (label, market)
+YAHOO_SYMBOLS = {
+    "^N225": ("日经225",  "INTL"),
+    "^GSPC": ("标普500",  "INTL"),
+    "^IXIC": ("纳斯达克", "INTL"),
+    "GC=F":  ("黄金",     "COMMODITY"),
+    "BZ=F":  ("布伦特原油", "COMMODITY"),
 }
 
 
 def fetch_cn():
-    """Fetch Chinese indices via Sina Finance."""
     symbols = ",".join(CN_SYMBOLS.keys())
-    url = f"https://hq.sinajs.cn/list={symbols}"
-    resp = requests.get(url, headers=HEADERS, timeout=15)
+    url  = f"https://hq.sinajs.cn/list={symbols}"
+    resp = requests.get(url, headers=SINA_HEADERS, timeout=15)
     resp.encoding = "gbk"
     text = resp.text
 
     results = []
-    for sym, label in CN_SYMBOLS.items():
-        pattern = rf'hq_str_{re.escape(sym)}="([^"]+)"'
-        m = re.search(pattern, text)
+    for sym, (label, market) in CN_SYMBOLS.items():
+        m = re.search(rf'hq_str_{re.escape(sym)}="([^"]+)"', text)
         if not m:
             continue
         fields = m.group(1).split(",")
@@ -51,45 +53,36 @@ def fetch_cn():
             change     = price - prev_close
             pct        = (change / prev_close) * 100 if prev_close else 0
             results.append({
-                "symbol": sym,
-                "label":  label,
-                "market": "CN",
-                "price":  round(price, 2),
-                "change": round(change, 2),
-                "pct":    round(pct, 2),
+                "symbol": sym, "label": label, "market": market,
+                "price": round(price, 2), "change": round(change, 2), "pct": round(pct, 2),
             })
         except (ValueError, ZeroDivisionError):
             continue
     return results
 
 
-def fetch_us():
-    """Fetch US indices via Yahoo Finance (server-side, no CORS)."""
+def fetch_yahoo():
     results = []
-    for sym, label in US_SYMBOLS.items():
+    for sym, (label, market) in YAHOO_SYMBOLS.items():
         try:
             url  = f"https://query1.finance.yahoo.com/v8/finance/chart/{sym}?interval=1d&range=1d"
-            resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=15)
+            resp = requests.get(url, headers=YAHOO_HEADERS, timeout=15)
             data = resp.json()
             meta = data["chart"]["result"][0]["meta"]
             price      = meta["regularMarketPrice"]
             prev_close = meta.get("chartPreviousClose") or meta.get("previousClose", price)
             change     = price - prev_close
             pct        = (change / prev_close) * 100 if prev_close else 0
+            # Commodities: 2 decimal places; indices: vary
+            decimals   = 2
             results.append({
-                "symbol": sym,
-                "label":  label,
-                "market": "US",
-                "price":  round(price, 2),
-                "change": round(change, 2),
-                "pct":    round(pct, 2),
+                "symbol": sym, "label": label, "market": market,
+                "price": round(price, decimals), "change": round(change, decimals), "pct": round(pct, 2),
             })
         except Exception as e:
-            print(f"  [stocks] {label} error: {e}")
+            print(f"  [stocks] {label} ({sym}) error: {e}")
     return results
 
 
 def fetch():
-    cn = fetch_cn()
-    us = fetch_us()
-    return cn + us
+    return fetch_cn() + fetch_yahoo()
