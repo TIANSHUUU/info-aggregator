@@ -1,10 +1,7 @@
 name: 每日数据更新 + 部署
 
 on:
-  schedule:
-    # 11:00 HKT = 03:00 UTC
-    - cron: '0 3 * * *'
-  workflow_dispatch:  # 允许手动触发
+  workflow_dispatch:  # 由 Claude remote trigger 每天 11:00 AEDT 触发
 
 permissions:
   contents: read
