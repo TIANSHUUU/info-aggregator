@@ -107,8 +107,11 @@ Transcript:
 
 def fetch() -> dict:
     """Return a single dict (not a list) with the latest episode summary."""
+    print(f"  [equitymates] GROQ_API_KEY set: {bool(os.environ.get('GROQ_API_KEY'))}")
     url, _, _ = _get_latest_episode_url()
+    print(f"  [equitymates] latest episode URL: {url}")
     episode   = _get_episode_data(url)
+    print(f"  [equitymates] transcript length: {len(episode['transcript'])}")
 
     if not episode["transcript"]:
         print("  [equitymates] No transcript found, skipping summarisation")

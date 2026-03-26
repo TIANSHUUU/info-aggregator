@@ -30,7 +30,9 @@ def run_fetcher(name, func):
         print(f"[{name}] OK — {len(items)} items")
         return items
     except Exception as e:
+        import traceback
         print(f"[{name}] ERROR — {e}", file=sys.stderr)
+        traceback.print_exc(file=sys.stderr)
         return []
 
 
