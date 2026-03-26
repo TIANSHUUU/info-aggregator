@@ -35,6 +35,8 @@ jobs:
 
       - name: Fetch all sources
         run: python scripts/fetch_all.py
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4

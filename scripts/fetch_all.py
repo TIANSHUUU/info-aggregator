@@ -17,6 +17,7 @@ import fetch_caixin
 import fetch_schwab
 import fetch_hket
 import fetch_gorozen
+import fetch_equitymates
 import fetch_stocks
 
 DATA_DIR = Path(__file__).parent.parent / "public" / "data"
@@ -46,6 +47,13 @@ def main():
         items = run_fetcher(key, func)
         path = DATA_DIR / f"{key}.json"
         path.write_text(json.dumps(items, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    # Equity Mates — returns a single dict, not a list
+    em = run_fetcher("equitymates", fetch_equitymates.fetch)
+    (DATA_DIR / "equitymates.json").write_text(
+        json.dumps(em if isinstance(em, dict) else {}, ensure_ascii=False, indent=2),
+        encoding="utf-8"
+    )
 
     # Stocks
     stocks = run_fetcher("stocks", fetch_stocks.fetch)

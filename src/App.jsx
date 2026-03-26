@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import dayjs from 'dayjs'
 import StockBar from './components/StockBar'
 import NewsSection from './components/NewsSection'
+import PodcastSection from './components/PodcastSection'
 import NavBar from './components/NavBar'
 
 const BASE = import.meta.env.BASE_URL
@@ -20,6 +21,7 @@ const SOURCES = [
   { key: 'schwab',   title: 'Charles Schwab', source: 'https://www.schwab.com/learn/market-commentary',                   showSummary: true, note: '日期信息暂不可用，以下为最新文章' },
   { key: 'hket',     title: 'HKET',           source: 'https://china.hket.com/srac002/%E5%8D%B3%E6%99%82%E4%B8%AD%E5%9C%8B', showSummary: false },
   { key: 'gorozen',  title: 'Gorozen',        source: 'https://blog.gorozen.com/blog',                                        showSummary: true  },
+  { key: 'equitymates', title: '🇦🇺 Equity', source: 'https://equitymates.com/show/equity-mates-investing-podcast/', showSummary: false },
 ]
 
 const DISPATCH_URL = 'https://api.github.com/repos/TIANSHUUU/info-aggregator/actions/workflows/update.yml/dispatches'
@@ -28,9 +30,10 @@ const FRONTEND_TOKEN = import.meta.env.VITE_GITHUB_TOKEN
 export default function App() {
   const [data, setData] = useState({})
   const [loadingMap, setLoadingMap] = useState(
-    Object.fromEntries(SOURCES.map(s => [s.key, true]))
+    Object.fromEntries([...SOURCES.map(s => [s.key, true]), ['equitymates', true]])
   )
   const [errorMap, setErrorMap] = useState({})
+  const [equitymates, setEquitymates] = useState(null)
   const [lastUpdated, setLastUpdated] = useState(null)
   const [refreshState, setRefreshState] = useState('idle') // idle | pending | done | error
 
@@ -53,6 +56,11 @@ export default function App() {
       .then(meta => setLastUpdated(meta.updated_at))
       .catch(() => {})
     loadAll()
+
+    // Load Equity Mates separately (single object, not array)
+    loadJson('equitymates')
+      .then(d => { setEquitymates(d); setLoadingMap(prev => ({ ...prev, equitymates: false })) })
+      .catch(() => { setLoadingMap(prev => ({ ...prev, equitymates: false })); setErrorMap(prev => ({ ...prev, equitymates: true })) })
   }, [])
 
   async function handleRefresh() {
@@ -137,7 +145,7 @@ export default function App() {
         <StockBar />
 
         {/* News sources — each with an anchor id */}
-        {SOURCES.map(s => (
+        {SOURCES.filter(s => s.key !== 'equitymates').map(s => (
           <div id={`section-${s.key}`} key={s.key}>
             <NewsSection
               title={s.title}
@@ -150,6 +158,14 @@ export default function App() {
             />
           </div>
         ))}
+        {/* Equity Mates podcast — special layout */}
+        <div id="section-equitymates">
+          <PodcastSection
+            data={equitymates}
+            loading={loadingMap['equitymates']}
+            error={errorMap['equitymates']}
+          />
+        </div>
       </main>
 
       <footer className="text-center text-sm text-gray-400 py-8">
