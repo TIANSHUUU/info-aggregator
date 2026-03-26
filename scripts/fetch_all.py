@@ -16,6 +16,7 @@ import fetch_initium
 import fetch_caixin
 import fetch_schwab
 import fetch_hket
+import fetch_gorozen
 import fetch_stocks
 
 DATA_DIR = Path(__file__).parent.parent / "public" / "data"
@@ -34,10 +35,11 @@ def run_fetcher(name, func):
 
 def main():
     sources = {
-        "initium": fetch_initium.fetch,
-        "caixin":  fetch_caixin.fetch,
-        "schwab":  fetch_schwab.fetch,
-        "hket":    fetch_hket.fetch,
+        "initium":  fetch_initium.fetch,
+        "caixin":   fetch_caixin.fetch,
+        "schwab":   fetch_schwab.fetch,
+        "hket":     fetch_hket.fetch,
+        "gorozen":  fetch_gorozen.fetch,
     }
 
     for key, func in sources.items():
