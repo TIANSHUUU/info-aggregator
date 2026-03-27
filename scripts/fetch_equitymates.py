@@ -12,65 +12,50 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
                   "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
 }
-RSS_URL    = "https://equitymates.com/show/equity-mates-investing-podcast/feed/"
+WP_API_URL = "https://equitymates.com/wp-json/wp/v2/episode?per_page=1&orderby=date&order=desc"
 GROQ_MODEL = "qwen/qwen3-32b"
 
 
-def _get_latest_episode_url() -> tuple[str, str, str]:
-    """Return (url, title, date_iso) for the most recent episode via RSS feed."""
-    resp = requests.get(RSS_URL, headers=HEADERS, timeout=15)
+def _get_latest_episode() -> dict:
+    """Return episode metadata + show notes via WordPress REST API (bypasses Cloudflare)."""
+    resp = requests.get(WP_API_URL, headers=HEADERS, timeout=15)
     resp.raise_for_status()
-    soup = BeautifulSoup(resp.content, "xml")
+    ep = resp.json()[0]
 
-    item = soup.find("item")
-    if not item:
-        raise ValueError("No items found in RSS feed")
+    url   = ep["link"]
+    title = BeautifulSoup(ep["title"]["rendered"], "lxml").get_text(strip=True)
+    date  = ep.get("date", "")
+    # ISO date from WP API is already in local time; convert to UTC ISO string
+    try:
+        dt = datetime.fromisoformat(date).replace(tzinfo=timezone.utc)
+        date_iso = dt.isoformat()
+    except ValueError:
+        date_iso = date
 
-    url   = (item.find("link") or item.find("guid") or {}).get_text(strip=True)
-    title = item.find("title").get_text(strip=True) if item.find("title") else ""
-    pub   = item.find("pubDate").get_text(strip=True) if item.find("pubDate") else ""
-    return url, title, pub
+    # Show notes as fallback content if transcript page is blocked
+    notes_html = ep.get("content", {}).get("rendered", "")
+    notes = BeautifulSoup(notes_html, "lxml").get_text(separator="\n", strip=True)
+
+    return {"url": url, "title": title, "date": date_iso, "notes": notes}
 
 
-def _get_episode_data(url: str) -> dict:
-    """Fetch episode page and extract title, date, transcript."""
-    resp = requests.get(url, headers=HEADERS, timeout=15)
-    resp.raise_for_status()
+def _get_transcript(url: str) -> str:
+    """Fetch episode page and extract full transcript. Returns empty string if blocked."""
+    try:
+        resp = requests.get(url, headers=HEADERS, timeout=15)
+        resp.raise_for_status()
+    except Exception as e:
+        print(f"  [equitymates] episode page fetch failed ({e}), will use show notes")
+        return ""
+
     soup = BeautifulSoup(resp.text, "lxml")
-
-    title = soup.select_one("h1.entry-title, h1")
-    title = title.get_text(strip=True) if title else ""
-
-    date_el = soup.select_one(".info-date, .post-date, time")
-    date_str = date_el.get_text(strip=True) if date_el else ""
-    # Try to parse date like "26 March, 2026" or "March 26, 2026"
-    date_iso = ""
-    for fmt in ("%d %B, %Y", "%B %d, %Y", "%d %B %Y"):
-        try:
-            # Strip non-date prefix (e.g., "HOSTS Alec | 26 March, 2026")
-            clean = re.sub(r"^.*\|\s*", "", date_str).strip()
-            dt = datetime.strptime(clean, fmt).replace(tzinfo=timezone.utc)
-            date_iso = dt.isoformat()
-            break
-        except ValueError:
-            continue
-
     transcript_div = soup.find(id="transcript")
-    transcript = transcript_div.get_text(separator="\n", strip=True) if transcript_div else ""
-
-    # Also get stocks from show notes
-    stocks_raw = ""
-    notes = soup.find(id="notes") or soup.select_one(".tab-pane")
-    if notes:
-        stocks_match = re.search(r"Stocks.*?mentioned[:\s]*(.*?)(?:\n\n|$)", notes.get_text(), re.DOTALL | re.I)
-        if stocks_match:
-            stocks_raw = stocks_match.group(1).strip()
-
-    return {"title": title, "date": date_iso, "url": url,
-            "transcript": transcript[:28000], "stocks_raw": stocks_raw}
+    if transcript_div:
+        return transcript_div.get_text(separator="\n", strip=True)
+    return ""
 
 
-def _summarise(episode: dict) -> dict:
+def _summarise(content: str, title: str) -> dict:
     """Call Groq to generate structured Chinese summary."""
     from groq import Groq
 
@@ -79,7 +64,7 @@ def _summarise(episode: dict) -> dict:
         raise ValueError("GROQ_API_KEY not set")
 
     client = Groq(api_key=api_key)
-    prompt = f"""以下是一集澳大利亚投资播客的文字稿。
+    prompt = f"""以下是一集澳大利亚投资播客的内容（标题：{title}）。
 
 请用中文输出JSON格式的节目总结：
 {{"sections":[{{"heading":"标题","points":["要点"]}}],"stocks":["名称(代码)"]}}
@@ -93,8 +78,8 @@ C) 呈现一个反直觉的结论（违反常识的发现）
 stocks只列嘉宾深入分析过的证券，不列随口提到的。
 输出纯JSON，不加markdown代码块，不加<think>标签。
 
-Transcript:
-{episode['transcript']}"""
+内容：
+{content}"""
 
     resp = client.chat.completions.create(
         model=GROQ_MODEL,
@@ -102,33 +87,39 @@ Transcript:
         temperature=0.1,
     )
     raw = resp.choices[0].message.content.strip()
-    # Strip Qwen3 <think>...</think> reasoning blocks and markdown fences
     raw = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
     raw = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw, flags=re.MULTILINE).strip()
-    data = json.loads(raw)
-    return data
+    return json.loads(raw)
 
 
 def fetch() -> dict:
     """Return a single dict (not a list) with the latest episode summary."""
     print(f"  [equitymates] GROQ_API_KEY set: {bool(os.environ.get('GROQ_API_KEY'))}")
-    url, _, _ = _get_latest_episode_url()
-    print(f"  [equitymates] latest episode URL: {url}")
-    episode   = _get_episode_data(url)
-    print(f"  [equitymates] transcript length: {len(episode['transcript'])}")
 
-    if not episode["transcript"]:
-        print("  [equitymates] No transcript found, skipping summarisation")
-        return {"title": episode["title"], "date": episode["date"],
-                "url": url, "sections": [], "stocks": []}
+    ep = _get_latest_episode()
+    print(f"  [equitymates] latest episode: {ep['title']} — {ep['url']}")
 
-    summary = _summarise(episode)
+    # Try full transcript first, fall back to show notes
+    transcript = _get_transcript(ep["url"])
+    if transcript:
+        print(f"  [equitymates] using transcript ({len(transcript)} chars)")
+        content = transcript[:28000]
+    else:
+        print(f"  [equitymates] using show notes ({len(ep['notes'])} chars)")
+        content = ep["notes"]
+
+    if not content or len(content) < 100:
+        print("  [equitymates] insufficient content, skipping summarisation")
+        return {"title": ep["title"], "date": ep["date"], "url": ep["url"],
+                "sections": [], "stocks": []}
+
+    summary = _summarise(content, ep["title"])
     print(f"  [equitymates] {len(summary['sections'])} sections summarised")
 
     return {
-        "title":    episode["title"],
-        "date":     episode["date"],
-        "url":      url,
+        "title":    ep["title"],
+        "date":     ep["date"],
+        "url":      ep["url"],
         "sections": summary.get("sections", []),
         "stocks":   summary.get("stocks", []),
     }
