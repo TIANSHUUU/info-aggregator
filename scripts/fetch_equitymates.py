@@ -12,30 +12,24 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
                   "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
 }
-LISTING_URL = "https://equitymates.com/show/equity-mates-investing-podcast/"
-GROQ_MODEL  = "qwen/qwen3-32b"
+RSS_URL    = "https://equitymates.com/show/equity-mates-investing-podcast/feed/"
+GROQ_MODEL = "qwen/qwen3-32b"
 
 
 def _get_latest_episode_url() -> tuple[str, str, str]:
-    """Return (url, title, date_iso) for the most recent episode."""
-    resp = requests.get(LISTING_URL, headers=HEADERS, timeout=15)
+    """Return (url, title, date_iso) for the most recent episode via RSS feed."""
+    resp = requests.get(RSS_URL, headers=HEADERS, timeout=15)
     resp.raise_for_status()
-    soup = BeautifulSoup(resp.text, "lxml")
+    soup = BeautifulSoup(resp.content, "xml")
 
-    # Episode cards use <a class="card-link" href="/episode/..."> (anchor is empty, title in sibling h4)
-    cards = soup.select("a.card-link[href*='/episode/']")
-    if not cards:
-        # Fallback: any anchor with /episode/ in href
-        cards = soup.select("a[href*='/episode/']")
-    if not cards:
-        raise ValueError("Could not find episode link on listing page")
+    item = soup.find("item")
+    if not item:
+        raise ValueError("No items found in RSS feed")
 
-    card = cards[0]
-    url = card["href"]
-    # Title is in the sibling h4 inside the same card wrapper
-    wrapper = card.find_next("h4")
-    title = wrapper.get_text(strip=True) if wrapper else ""
-    return url, title, ""
+    url   = (item.find("link") or item.find("guid") or {}).get_text(strip=True)
+    title = item.find("title").get_text(strip=True) if item.find("title") else ""
+    pub   = item.find("pubDate").get_text(strip=True) if item.find("pubDate") else ""
+    return url, title, pub
 
 
 def _get_episode_data(url: str) -> dict:
