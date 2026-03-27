@@ -146,7 +146,9 @@ def fetch() -> dict:
     transcript = _get_transcript(em_url) if em_url else ""
     if transcript:
         print(f"  [equitymates] transcript: {len(transcript)} chars")
-        content = transcript[:28000]
+        # Skip intro/disclaimer (~1500 chars), take 20000 chars of core discussion
+        # Qwen3-32B TPM limit is 6000; 20000 chars ≈ 4500 tokens + prompt overhead ≈ 4800 total
+        content = transcript[1500:21500]
     else:
         print(f"  [equitymates] falling back to Acast description ({len(ep['desc'])} chars)")
         content = ep["desc"]
