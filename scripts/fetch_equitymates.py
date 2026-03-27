@@ -1,5 +1,10 @@
 """
 Equity Mates Investing Podcast — latest episode transcript summary via Groq.
+
+Cloudflare blocks GitHub Actions IPs on equitymates.com.
+Strategy:
+  1. curl_cffi (Chrome TLS fingerprint) → bypasses Cloudflare bot detection
+  2. Acast RSS → get episode URL + show notes as fallback content
 """
 import json
 import os
@@ -8,57 +13,90 @@ import requests
 from bs4 import BeautifulSoup
 from datetime import datetime, timezone
 
+ACAST_RSS  = "https://feeds.acast.com/public/shows/8c560a52-84ff-4b06-b819-f4e9bd6e85ef"
+GROQ_MODEL = "qwen/qwen3-32b"
+
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
                   "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-AU,en;q=0.9",
 }
-WP_API_URL = "https://equitymates.com/wp-json/wp/v2/episode?per_page=1&orderby=date&order=desc"
-GROQ_MODEL = "qwen/qwen3-32b"
 
 
-def _get_latest_episode() -> dict:
-    """Return episode metadata + show notes via WordPress REST API (bypasses Cloudflare)."""
-    resp = requests.get(WP_API_URL, headers=HEADERS, timeout=15)
+def _cf_get(url: str) -> "requests.Response":
+    """Fetch URL using Chrome TLS fingerprint to bypass Cloudflare."""
+    from curl_cffi import requests as cffi_req
+    return cffi_req.get(url, impersonate="chrome120", timeout=20)
+
+
+def _get_acast_episode() -> dict:
+    """Get latest episode metadata + description from Acast RSS (always accessible)."""
+    resp = requests.get(ACAST_RSS, headers=HEADERS, timeout=15)
     resp.raise_for_status()
-    ep = resp.json()[0]
+    soup = BeautifulSoup(resp.content, "xml")
+    item = soup.find("item")
+    if not item:
+        raise ValueError("No items in Acast RSS")
 
-    url   = ep["link"]
-    title = BeautifulSoup(ep["title"]["rendered"], "lxml").get_text(strip=True)
-    date  = ep.get("date", "")
-    # ISO date from WP API is already in local time; convert to UTC ISO string
+    title   = item.find("title").get_text(strip=True) if item.find("title") else ""
+    pub     = item.find("pubDate").get_text(strip=True) if item.find("pubDate") else ""
+    # Acast episode URL → derive equitymates.com URL via slug
+    acast_url  = item.find("link").get_text(strip=True) if item.find("link") else ""
+    acast_slug = acast_url.rstrip("/").split("/")[-1]  # e.g. "is-your-portfolio-..."
+
+    # Description from Acast RSS (HTML-encoded)
+    desc_raw = item.find("description") or item.find("itunes:summary") or {}
+    desc_html = desc_raw.get_text(strip=True) if hasattr(desc_raw, "get_text") else ""
+    desc_text = BeautifulSoup(desc_html, "lxml").get_text(separator="\n", strip=True)
+
     try:
-        dt = datetime.fromisoformat(date).replace(tzinfo=timezone.utc)
+        dt = datetime.strptime(pub, "%a, %d %b %Y %H:%M:%S %Z").replace(tzinfo=timezone.utc)
         date_iso = dt.isoformat()
     except ValueError:
-        date_iso = date
+        date_iso = pub
 
-    # Show notes as fallback content if transcript page is blocked
-    notes_html = ep.get("content", {}).get("rendered", "")
-    notes = BeautifulSoup(notes_html, "lxml").get_text(separator="\n", strip=True)
+    return {
+        "title":      title,
+        "date":       date_iso,
+        "acast_url":  acast_url,
+        "acast_slug": acast_slug,
+        "desc":       desc_text,
+    }
 
-    return {"url": url, "title": title, "date": date_iso, "notes": notes}
 
-
-def _get_transcript(url: str) -> str:
-    """Fetch episode page and extract full transcript. Returns empty string if blocked."""
+def _find_equitymates_url(acast_slug: str) -> str:
+    """Find the equitymates.com episode URL by searching their site via WP API (curl_cffi)."""
     try:
-        resp = requests.get(url, headers=HEADERS, timeout=15)
-        resp.raise_for_status()
+        resp = _cf_get(
+            f"https://equitymates.com/wp-json/wp/v2/episode?per_page=1&orderby=date&order=desc"
+        )
+        if resp.status_code == 200:
+            ep = resp.json()[0]
+            return ep.get("link", "")
     except Exception as e:
-        print(f"  [equitymates] episode page fetch failed ({e}), will use show notes")
-        return ""
-
-    soup = BeautifulSoup(resp.text, "lxml")
-    transcript_div = soup.find(id="transcript")
-    if transcript_div:
-        return transcript_div.get_text(separator="\n", strip=True)
+        print(f"  [equitymates] WP API via curl_cffi failed: {e}")
     return ""
 
 
-def _summarise(content: str, title: str) -> dict:
-    """Call Groq to generate structured Chinese summary."""
-    from groq import Groq
+def _get_transcript(url: str) -> str:
+    """Fetch equitymates episode page and extract transcript via curl_cffi."""
+    try:
+        resp = _cf_get(url)
+        if resp.status_code != 200:
+            print(f"  [equitymates] episode page status: {resp.status_code}")
+            return ""
+        soup = BeautifulSoup(resp.text, "lxml")
+        div  = soup.find(id="transcript")
+        return div.get_text(separator="\n", strip=True) if div else ""
+    except Exception as e:
+        print(f"  [equitymates] transcript fetch failed: {e}")
+        return ""
 
+
+def _summarise(content: str, title: str) -> dict:
+    """Call Groq Qwen3 to generate structured Chinese summary."""
+    from groq import Groq
     api_key = os.environ.get("GROQ_API_KEY", "")
     if not api_key:
         raise ValueError("GROQ_API_KEY not set")
@@ -93,33 +131,38 @@ stocks只列嘉宾深入分析过的证券，不列随口提到的。
 
 
 def fetch() -> dict:
-    """Return a single dict (not a list) with the latest episode summary."""
+    """Return a single dict with the latest episode summary."""
     print(f"  [equitymates] GROQ_API_KEY set: {bool(os.environ.get('GROQ_API_KEY'))}")
 
-    ep = _get_latest_episode()
-    print(f"  [equitymates] latest episode: {ep['title']} — {ep['url']}")
+    # Step 1: get episode metadata from Acast RSS (always works)
+    ep = _get_acast_episode()
+    print(f"  [equitymates] latest: {ep['title']}")
 
-    # Try full transcript first, fall back to show notes
-    transcript = _get_transcript(ep["url"])
+    # Step 2: find equitymates.com URL via curl_cffi
+    em_url = _find_equitymates_url(ep["acast_slug"])
+    print(f"  [equitymates] equitymates URL: {em_url or '(not found)'}")
+
+    # Step 3: get full transcript if we have the URL
+    transcript = _get_transcript(em_url) if em_url else ""
     if transcript:
-        print(f"  [equitymates] using transcript ({len(transcript)} chars)")
+        print(f"  [equitymates] transcript: {len(transcript)} chars")
         content = transcript[:28000]
     else:
-        print(f"  [equitymates] using show notes ({len(ep['notes'])} chars)")
-        content = ep["notes"]
+        print(f"  [equitymates] falling back to Acast description ({len(ep['desc'])} chars)")
+        content = ep["desc"]
 
-    if not content or len(content) < 100:
+    if not content or len(content) < 50:
         print("  [equitymates] insufficient content, skipping summarisation")
-        return {"title": ep["title"], "date": ep["date"], "url": ep["url"],
+        return {"title": ep["title"], "date": ep["date"], "url": em_url or ep["acast_url"],
                 "sections": [], "stocks": []}
 
     summary = _summarise(content, ep["title"])
-    print(f"  [equitymates] {len(summary['sections'])} sections summarised")
+    print(f"  [equitymates] {len(summary.get('sections', []))} sections")
 
     return {
         "title":    ep["title"],
         "date":     ep["date"],
-        "url":      ep["url"],
+        "url":      em_url or ep["acast_url"],
         "sections": summary.get("sections", []),
         "stocks":   summary.get("stocks", []),
     }
