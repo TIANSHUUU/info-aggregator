@@ -14,7 +14,8 @@ from bs4 import BeautifulSoup
 from datetime import datetime, timezone
 
 ACAST_RSS  = "https://feeds.acast.com/public/shows/8c560a52-84ff-4b06-b819-f4e9bd6e85ef"
-GROQ_MODEL = "llama-3.3-70b-versatile"
+GROQ_MODEL = "llama-3.3-70b-versatile"  # primary
+GROQ_MODEL_FALLBACK = "llama-3.1-8b-instant"  # fallback if daily limit exhausted
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -116,11 +117,22 @@ def _summarise(content: str, title: str) -> dict:
 Transcript:
 {content}"""
 
-    resp = client.chat.completions.create(
-        model=GROQ_MODEL,
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.1,
-    )
+    try:
+        resp = client.chat.completions.create(
+            model=GROQ_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.1,
+        )
+    except Exception as e:
+        if "rate_limit" in str(e) or "429" in str(e) or "413" in str(e):
+            print(f"  [equitymates] primary model limit hit, falling back to {GROQ_MODEL_FALLBACK}")
+            resp = client.chat.completions.create(
+                model=GROQ_MODEL_FALLBACK,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.1,
+            )
+        else:
+            raise
     raw = resp.choices[0].message.content.strip()
     raw = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
     raw = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw, flags=re.MULTILINE).strip()
