@@ -14,7 +14,7 @@ from bs4 import BeautifulSoup
 from datetime import datetime, timezone
 
 ACAST_RSS  = "https://feeds.acast.com/public/shows/8c560a52-84ff-4b06-b819-f4e9bd6e85ef"
-GROQ_MODEL = "qwen/qwen3-32b"
+GROQ_MODEL = "llama-3.3-70b-versatile"
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -102,21 +102,18 @@ def _summarise(content: str, title: str) -> dict:
         raise ValueError("GROQ_API_KEY not set")
 
     client = Groq(api_key=api_key)
-    prompt = f"""以下是一集澳大利亚投资播客的内容（标题：{title}）。
+    prompt = f"""你是一个投资播客内容分析师。以下是一集澳大利亚投资播客的transcript。
 
-请用中文输出JSON格式的节目总结：
-{{"sections":[{{"heading":"标题","points":["要点"]}}],"stocks":["名称(代码)"]}}
+请用中文生成结构化总结，输出严格JSON格式（不要加markdown代码块，不要加注释）：
+{{"sections":[{{"heading":"章节标题","points":["要点1","要点2","要点3"]}}],"stocks":["股票名称或代码"]}}
 
-硬性规定——每个要点必须满足以下至少一条：
-A) 包含具体数字（比例/金额/时间/规模）
-B) 描述一个明确的因果机制（因为X，所以Y）
-C) 呈现一个反直觉的结论（违反常识的发现）
+要求：
+- 每个主要话题一个section（3-5个section）
+- 每section 3-5个要点，要具体，包含数字和关键细节
+- 投资洞察/建议要明确标出
+- stocks列出所有提及的股票/ETF，格式：名称(代码)
 
-违反此规定的要点一律不写，宁缺毋滥。最多4个section，每section 2-4个要点。
-stocks只列嘉宾深入分析过的证券，不列随口提到的。
-输出纯JSON，不加markdown代码块，不加<think>标签。
-
-内容：
+Transcript:
 {content}"""
 
     resp = client.chat.completions.create(
@@ -146,9 +143,7 @@ def fetch() -> dict:
     transcript = _get_transcript(em_url) if em_url else ""
     if transcript:
         print(f"  [equitymates] transcript: {len(transcript)} chars")
-        # Skip intro/disclaimer (~1500 chars), take 20000 chars of core discussion
-        # Qwen3-32B TPM limit is 6000; 20000 chars ≈ 4500 tokens + prompt overhead ≈ 4800 total
-        content = transcript[1500:21500]
+        content = transcript[:28000]
     else:
         print(f"  [equitymates] falling back to Acast description ({len(ep['desc'])} chars)")
         content = ep["desc"]
