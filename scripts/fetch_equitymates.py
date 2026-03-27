@@ -13,7 +13,7 @@ HEADERS = {
                   "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
 }
 LISTING_URL = "https://equitymates.com/show/equity-mates-investing-podcast/"
-GROQ_MODEL  = "llama-3.3-70b-versatile"
+GROQ_MODEL  = "qwen/qwen3-32b"
 
 
 def _get_latest_episode_url() -> tuple[str, str, str]:
@@ -85,16 +85,19 @@ def _summarise(episode: dict) -> dict:
         raise ValueError("GROQ_API_KEY not set")
 
     client = Groq(api_key=api_key)
-    prompt = f"""你是一个投资播客内容分析师。以下是一集澳大利亚投资播客的transcript。
+    prompt = f"""以下是一集澳大利亚投资播客的文字稿。
 
-请用中文生成结构化总结，输出严格JSON格式（不要加markdown代码块，不要加注释）：
-{{"sections":[{{"heading":"章节标题","points":["要点1","要点2","要点3"]}}],"stocks":["股票名称或代码"]}}
+请用中文输出JSON格式的节目总结：
+{{"sections":[{{"heading":"标题","points":["要点"]}}],"stocks":["名称(代码)"]}}
 
-要求：
-- 每个主要话题一个section（3-6个section）
-- 每section 3-5个要点，要具体，包含数字和关键细节
-- 投资洞察/建议要明确标出
-- stocks列出所有提及的股票/ETF，格式：名称(代码)
+硬性规定——每个要点必须满足以下至少一条：
+A) 包含具体数字（比例/金额/时间/规模）
+B) 描述一个明确的因果机制（因为X，所以Y）
+C) 呈现一个反直觉的结论（违反常识的发现）
+
+违反此规定的要点一律不写，宁缺毋滥。最多4个section，每section 2-4个要点。
+stocks只列嘉宾深入分析过的证券，不列随口提到的。
+输出纯JSON，不加markdown代码块，不加<think>标签。
 
 Transcript:
 {episode['transcript']}"""
@@ -102,10 +105,11 @@ Transcript:
     resp = client.chat.completions.create(
         model=GROQ_MODEL,
         messages=[{"role": "user", "content": prompt}],
-        temperature=0.3,
+        temperature=0.1,
     )
     raw = resp.choices[0].message.content.strip()
-    # Strip accidental markdown fences
+    # Strip Qwen3 <think>...</think> reasoning blocks and markdown fences
+    raw = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
     raw = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw, flags=re.MULTILINE).strip()
     data = json.loads(raw)
     return data
