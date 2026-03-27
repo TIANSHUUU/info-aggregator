@@ -22,13 +22,19 @@ def _get_latest_episode_url() -> tuple[str, str, str]:
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "lxml")
 
-    # Each episode card has an <a> with the episode URL
-    card = soup.select_one("article a[href*='/episode/'], .episode a[href*='/episode/'], a[href*='/episode/']")
-    if not card:
+    # Episode cards use <a class="card-link" href="/episode/..."> (anchor is empty, title in sibling h4)
+    cards = soup.select("a.card-link[href*='/episode/']")
+    if not cards:
+        # Fallback: any anchor with /episode/ in href
+        cards = soup.select("a[href*='/episode/']")
+    if not cards:
         raise ValueError("Could not find episode link on listing page")
 
+    card = cards[0]
     url = card["href"]
-    title = card.get_text(strip=True) or ""
+    # Title is in the sibling h4 inside the same card wrapper
+    wrapper = card.find_next("h4")
+    title = wrapper.get_text(strip=True) if wrapper else ""
     return url, title, ""
 
 
