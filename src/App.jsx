@@ -39,11 +39,15 @@ export default function App() {
   const [lastUpdated, setLastUpdated] = useState(null)
   const [refreshState, setRefreshState] = useState('idle') // idle | pending | done | error
 
+  const PODCAST_SETTERS = { equitymates: setEquitymates, peakprosperity: setPeakprosperity }
+
   function loadAll() {
+    const t = Date.now()
     SOURCES.forEach(({ key }) => {
-      loadJson(`${key}?t=${Date.now()}`)
-        .then(items => {
-          setData(prev => ({ ...prev, [key]: items }))
+      loadJson(`${key}?t=${t}`)
+        .then(d => {
+          if (key in PODCAST_SETTERS) PODCAST_SETTERS[key](d)
+          else setData(prev => ({ ...prev, [key]: d }))
           setLoadingMap(prev => ({ ...prev, [key]: false }))
         })
         .catch(() => {
@@ -58,16 +62,6 @@ export default function App() {
       .then(meta => setLastUpdated(meta.updated_at))
       .catch(() => {})
     loadAll()
-
-    // Load Equity Mates separately (single object, not array)
-    loadJson('equitymates')
-      .then(d => { setEquitymates(d); setLoadingMap(prev => ({ ...prev, equitymates: false })) })
-      .catch(() => { setLoadingMap(prev => ({ ...prev, equitymates: false })); setErrorMap(prev => ({ ...prev, equitymates: true })) })
-
-    // Load Peak Prosperity separately (single object, not array)
-    loadJson('peakprosperity')
-      .then(d => { setPeakprosperity(d); setLoadingMap(prev => ({ ...prev, peakprosperity: false })) })
-      .catch(() => { setLoadingMap(prev => ({ ...prev, peakprosperity: false })); setErrorMap(prev => ({ ...prev, peakprosperity: true })) })
   }, [])
 
   async function handleRefresh() {

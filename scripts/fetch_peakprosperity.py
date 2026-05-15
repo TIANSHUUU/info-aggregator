@@ -115,7 +115,14 @@ def _summarise(content: str, title: str) -> dict:
     raw = resp.choices[0].message.content.strip()
     raw = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
     raw = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw, flags=re.MULTILINE).strip()
-    return json.loads(raw)
+    # Extract first JSON object in case model adds surrounding text
+    m = re.search(r'\{.*\}', raw, flags=re.DOTALL)
+    raw = m.group(0) if m else raw
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError as e:
+        print(f"  [peakprosperity] JSON parse error: {e} — raw: {raw[:200]}")
+        raise
 
 
 def fetch() -> dict:
@@ -139,7 +146,12 @@ def fetch() -> dict:
         return {"title": ep["title"], "date": ep["date"], "url": ep["url"],
                 "sections": [], "stocks": []}
 
-    summary = _summarise(content, ep["title"])
+    try:
+        summary = _summarise(content, ep["title"])
+    except Exception as e:
+        print(f"  [peakprosperity] summarisation failed: {e}")
+        summary = {"sections": [], "stocks": []}
+
     print(f"  [peakprosperity] {len(summary.get('sections', []))} sections")
 
     return {
