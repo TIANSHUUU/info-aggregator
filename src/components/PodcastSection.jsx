@@ -1,10 +1,10 @@
 import dayjs from 'dayjs'
 
-export default function PodcastSection({ data, loading, error }) {
+export default function PodcastSection({ title, data, loading, error }) {
   return (
     <div className="card mb-4">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="section-title mb-0">🇦🇺 Equity Mates</h2>
+        <h2 className="section-title mb-0">{title}</h2>
         {data?.url && (
           <a href={data.url} target="_blank" rel="noopener noreferrer"
             className="text-sm text-gray-500 hover:text-gray-800 flex-shrink-0">

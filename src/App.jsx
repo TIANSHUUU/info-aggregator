@@ -21,7 +21,8 @@ const SOURCES = [
   { key: 'schwab',   title: 'Charles Schwab', source: 'https://www.schwab.com/learn/market-commentary',                   showSummary: true, note: '日期信息暂不可用，以下为最新文章' },
   { key: 'hket',     title: 'HKET',           source: 'https://china.hket.com/srac002/%E5%8D%B3%E6%99%82%E4%B8%AD%E5%9C%8B', showSummary: false },
   { key: 'gorozen',  title: 'Gorozen',        source: 'https://blog.gorozen.com/blog',                                        showSummary: true  },
-  { key: 'equitymates', title: '🇦🇺 Equity', source: 'https://equitymates.com/show/equity-mates-investing-podcast/', showSummary: false },
+  { key: 'equitymates',    title: '🇦🇺 Equity',    source: 'https://equitymates.com/show/equity-mates-investing-podcast/', showSummary: false },
+  { key: 'peakprosperity', title: 'Peak', source: 'https://peakprosperity.com/', showSummary: false },
 ]
 
 const DISPATCH_URL = 'https://api.github.com/repos/TIANSHUUU/info-aggregator/actions/workflows/update.yml/dispatches'
@@ -30,10 +31,11 @@ const FRONTEND_TOKEN = import.meta.env.VITE_GITHUB_TOKEN
 export default function App() {
   const [data, setData] = useState({})
   const [loadingMap, setLoadingMap] = useState(
-    Object.fromEntries([...SOURCES.map(s => [s.key, true]), ['equitymates', true]])
+    Object.fromEntries([...SOURCES.map(s => [s.key, true]), ['equitymates', true], ['peakprosperity', true]])
   )
   const [errorMap, setErrorMap] = useState({})
   const [equitymates, setEquitymates] = useState(null)
+  const [peakprosperity, setPeakprosperity] = useState(null)
   const [lastUpdated, setLastUpdated] = useState(null)
   const [refreshState, setRefreshState] = useState('idle') // idle | pending | done | error
 
@@ -61,6 +63,11 @@ export default function App() {
     loadJson('equitymates')
       .then(d => { setEquitymates(d); setLoadingMap(prev => ({ ...prev, equitymates: false })) })
       .catch(() => { setLoadingMap(prev => ({ ...prev, equitymates: false })); setErrorMap(prev => ({ ...prev, equitymates: true })) })
+
+    // Load Peak Prosperity separately (single object, not array)
+    loadJson('peakprosperity')
+      .then(d => { setPeakprosperity(d); setLoadingMap(prev => ({ ...prev, peakprosperity: false })) })
+      .catch(() => { setLoadingMap(prev => ({ ...prev, peakprosperity: false })); setErrorMap(prev => ({ ...prev, peakprosperity: true })) })
   }, [])
 
   async function handleRefresh() {
@@ -111,7 +118,7 @@ export default function App() {
       {/* Top header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-20 h-[52px] flex items-center">
         <div className="max-w-3xl mx-auto px-4 w-full flex items-center justify-between">
-          <h1 className="text-base font-semibold text-gray-900 tracking-tight">每日资讯</h1>
+          <img src={`${BASE}logo.png`} alt="每日资讯" className="h-9 w-9 rounded-full object-cover" />
           <div className="flex items-center gap-3">
             <span className="text-sm text-gray-500">
               {lastUpdated
@@ -145,7 +152,7 @@ export default function App() {
         <StockBar />
 
         {/* News sources — each with an anchor id */}
-        {SOURCES.filter(s => s.key !== 'equitymates').map(s => (
+        {SOURCES.filter(s => s.key !== 'equitymates' && s.key !== 'peakprosperity').map(s => (
           <div id={`section-${s.key}`} key={s.key}>
             <NewsSection
               title={s.title}
@@ -161,9 +168,19 @@ export default function App() {
         {/* Equity Mates podcast — special layout */}
         <div id="section-equitymates">
           <PodcastSection
+            title="🇦🇺 Equity Mates"
             data={equitymates}
             loading={loadingMap['equitymates']}
             error={errorMap['equitymates']}
+          />
+        </div>
+        {/* Peak Prosperity podcast */}
+        <div id="section-peakprosperity">
+          <PodcastSection
+            title="Peak"
+            data={peakprosperity}
+            loading={loadingMap['peakprosperity']}
+            error={errorMap['peakprosperity']}
           />
         </div>
       </main>

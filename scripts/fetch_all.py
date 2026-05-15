@@ -18,6 +18,7 @@ import fetch_schwab
 import fetch_hket
 import fetch_gorozen
 import fetch_equitymates
+import fetch_peakprosperity
 import fetch_stocks
 
 DATA_DIR = Path(__file__).parent.parent / "public" / "data"
@@ -54,6 +55,13 @@ def main():
     em = run_fetcher("equitymates", fetch_equitymates.fetch)
     (DATA_DIR / "equitymates.json").write_text(
         json.dumps(em if isinstance(em, dict) else {}, ensure_ascii=False, indent=2),
+        encoding="utf-8"
+    )
+
+    # Peak Prosperity — returns a single dict, not a list
+    pp = run_fetcher("peakprosperity", fetch_peakprosperity.fetch)
+    (DATA_DIR / "peakprosperity.json").write_text(
+        json.dumps(pp if isinstance(pp, dict) else {}, ensure_ascii=False, indent=2),
         encoding="utf-8"
     )
 
