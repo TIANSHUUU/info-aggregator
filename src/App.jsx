@@ -19,10 +19,10 @@ const SOURCES = [
   { key: 'initium',  title: '端传媒',         source: 'https://theinitium.com/',                                          showSummary: false },
   { key: 'caixin',   title: '财新',            source: 'https://www.caixin.com/',                                          showSummary: true  },
   { key: 'schwab',   title: 'Charles Schwab', source: 'https://www.schwab.com/learn/market-commentary',                   showSummary: true, note: '日期信息暂不可用，以下为最新文章' },
-  { key: 'hket',     title: 'HKET',           source: 'https://china.hket.com/srac002/%E5%8D%B3%E6%99%82%E4%B8%AD%E5%9C%8B', showSummary: false },
+  { key: 'peakprosperity', title: 'Peak', source: 'https://peakprosperity.com/', showSummary: false },
   { key: 'gorozen',  title: 'Gorozen',        source: 'https://blog.gorozen.com/blog',                                        showSummary: true  },
   { key: 'equitymates',    title: '🇦🇺 Equity',    source: 'https://equitymates.com/show/equity-mates-investing-podcast/', showSummary: false },
-  { key: 'peakprosperity', title: 'Peak', source: 'https://peakprosperity.com/', showSummary: false },
+  { key: 'hket',     title: 'HKET',           source: 'https://china.hket.com/srac002/%E5%8D%B3%E6%99%82%E4%B8%AD%E5%9C%8B', showSummary: false },
 ]
 
 const DISPATCH_URL = 'https://api.github.com/repos/TIANSHUUU/info-aggregator/actions/workflows/update.yml/dispatches'
@@ -151,38 +151,18 @@ export default function App() {
         {/* Stock indices */}
         <StockBar />
 
-        {/* News sources — each with an anchor id */}
-        {SOURCES.filter(s => s.key !== 'equitymates' && s.key !== 'peakprosperity').map(s => (
+        {/* All sections in SOURCES order */}
+        {SOURCES.map(s => (
           <div id={`section-${s.key}`} key={s.key}>
-            <NewsSection
-              title={s.title}
-              source={s.source}
-              items={data[s.key] || []}
-              loading={loadingMap[s.key]}
-              error={errorMap[s.key]}
-              showSummary={s.showSummary}
-              note={s.note}
-            />
+            {s.key === 'equitymates' ? (
+              <PodcastSection title="🇦🇺 Equity Mates" data={equitymates} loading={loadingMap['equitymates']} error={errorMap['equitymates']} />
+            ) : s.key === 'peakprosperity' ? (
+              <PodcastSection title="Peak" data={peakprosperity} loading={loadingMap['peakprosperity']} error={errorMap['peakprosperity']} />
+            ) : (
+              <NewsSection title={s.title} source={s.source} items={data[s.key] || []} loading={loadingMap[s.key]} error={errorMap[s.key]} showSummary={s.showSummary} note={s.note} />
+            )}
           </div>
         ))}
-        {/* Equity Mates podcast — special layout */}
-        <div id="section-equitymates">
-          <PodcastSection
-            title="🇦🇺 Equity Mates"
-            data={equitymates}
-            loading={loadingMap['equitymates']}
-            error={errorMap['equitymates']}
-          />
-        </div>
-        {/* Peak Prosperity podcast */}
-        <div id="section-peakprosperity">
-          <PodcastSection
-            title="Peak"
-            data={peakprosperity}
-            loading={loadingMap['peakprosperity']}
-            error={errorMap['peakprosperity']}
-          />
-        </div>
       </main>
 
       <footer className="text-center text-sm text-gray-400 py-8">
