@@ -11,8 +11,9 @@ from datetime import datetime, timedelta, timezone
 import requests
 from bs4 import BeautifulSoup
 
-LIST_URL = "https://www.schwab.com/learn/market-commentary"
-BASE_URL  = "https://www.schwab.com"
+LIST_URL     = "https://www.schwab.com/learn/market-commentary"
+BASE_URL     = "https://www.schwab.com"
+CONTENT_BASE = "https://educationcontent.schwab.com"
 CUTOFF_HOURS = 24
 
 HEADERS = {
@@ -119,16 +120,18 @@ def fetch():
         href = a["href"]
         if not href.startswith("/learn/story"):
             continue
-        url   = BASE_URL + href
-        if url in seen_urls:
+        slug        = href[len("/learn/story/"):]   # e.g. "tracking-four-horsemen-labor-market"
+        meta_url    = BASE_URL + href               # www.schwab.com — used server-side to fetch date/desc
+        display_url = f"{CONTENT_BASE}/story/{slug}"  # educationcontent.schwab.com — locale-neutral link
+        if meta_url in seen_urls:
             continue
-        seen_urls.add(url)
+        seen_urls.add(meta_url)
 
         heading = a.find(["h1","h2","h3","h4"])
         title   = heading.get_text(strip=True) if heading else a.get_text(strip=True)
         if len(title) < 8:
             continue
-        candidates.append({"title": title, "url": url})
+        candidates.append({"title": title, "meta_url": meta_url, "url": display_url})
 
     if not candidates:
         return []
@@ -136,7 +139,7 @@ def fetch():
     # Step 2: fetch dates + descriptions from article pages (top 8 only)
     items = []
     for c in candidates[:8]:
-        date_str, desc_en = _fetch_article_meta(c["url"], session)
+        date_str, desc_en = _fetch_article_meta(c["meta_url"], session)
         pub_dt = _parse_date(date_str)
 
         if pub_dt and pub_dt < cutoff:
