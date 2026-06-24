@@ -6,7 +6,7 @@
 > - **落地方向：C「硬朗双油墨 Zine」**（见 §3–§7）
 > - 备选方向 B「社论排版 Editorial」完整规格保留于 **附录 A**，以后可切换。
 > - 字体：标题衬线（Fraunces / 宋体），正文黑体（Newsreader / 苹方），标签等宽（Geist Mono）。
-> - 颜色角色：**terracotta 主强调 · 橙色高亮 · 蓝色结构色**。
+> - 颜色角色：**terracotta 主强调 · 橙色高亮 · 蓝色仅作标题 hover 投影**。
 >
 > 状态：✅ 已与用户确认方向、字体、配色、scope（2026-06-24）。本次只做视觉层，不动数据抓取与组件逻辑。安全隐患见 **附录 B**（独立后续任务）。
 
@@ -64,7 +64,7 @@
   /* 双油墨 + 高亮 */
   --color-accent:   oklch(52%   0.15  47);  /* terracotta — 主强调，text-safe */
   --color-orange:   oklch(63%   0.18  48);  /* 高亮填充（NEW / 强调） */
-  --color-blue:     oklch(47%   0.115 248); /* 第二油墨 — 结构 / 播客 / hover 投影 */
+  --color-blue:     oklch(47%   0.115 248); /* 第二油墨 — 仅用于标题 hover 投影 */
   --color-focus:    oklch(52%   0.16  47);  /* 焦点环 */
   /* 行情涨跌（中国习惯：红涨绿跌，保持现状） */
   --color-up:       oklch(55%   0.18  25);  /* 涨 红 */
@@ -109,7 +109,7 @@ fontFamily: {
 | --- | --- | --- |
 | 主强调 terracotta | `--color-accent` | 新闻源章节条（实心）、编号、stamp 描边、章节名英文标签、焦点环 |
 | 高亮 orange | `--color-orange` | `NEW` pill、「立即更新」按钮描边、个别需要跳出的强调 |
-| 结构 blue | `--color-blue` | 播客章节条（实心，区分新闻源）、标题 hover 文字与硬投影、播客分节标题 |
+| 结构 blue | `--color-blue` | 仅用于标题 hover 的文字与硬投影（terracotta 之外唯一的彩色油墨；播客章节条/分节标题已按用户要求统一为 terracotta） |
 | 墨黑 ink | `--color-ink` | 主文字、墨线（nav 底线、行情边框、footer 顶线）、深色报头底 |
 | 涨/跌 | `--color-up` / `--color-down` | 行情百分比与价格涨跌（红涨绿跌） |
 
@@ -163,9 +163,9 @@ fontFamily: {
 - loading 骨架：`--paper-2` 块 + `animate-pulse`。error / empty：`--muted` 文案。
 
 ### 6.5 播客 PodcastSection — `PodcastSection.jsx`
-- 章节条 `.sec-bar-cast`：实心 **`--blue`** 底 + 反白字（与新闻源区分）。
+- 章节条 `.sec-bar-cast`：实心 **`--accent`** 底 + 反白字（与新闻源一致；按用户要求不再用蓝色区分播客）。
 - 单集标题 `.ep`：`font-display` 600 16px `--ink`，hover → blue；日期 `font-mono` 10px `--neutral`。
-- 分节：heading `font-mono` 11px caps **`--blue`**；要点 `font-body` 13.5px `--ink`，前导符用 `—`（`--accent`）。
+- 分节：heading `font-mono` 11px caps **`--accent`**；要点 `font-body` 13.5px `--ink`，前导符用 `—`（`--accent`）。
 - 提及标的：上方 `1px solid --rule`，标签 `font-mono` caps `--neutral`；每个 tag = `font-mono` 10.5px `--ink` + `--rule-2` 描边。
 
 ### 6.6 页脚 Footer — `App.jsx <footer>`
