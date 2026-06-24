@@ -35,22 +35,15 @@ export default function NavBar({ sources }) {
   return (
     <nav
       ref={navRef}
-      className="sticky top-[52px] z-10 bg-white border-b border-gray-200 shadow-sm"
+      className="sticky top-[52px] z-10 bg-paper border-b-2 border-ink"
     >
       <div className="max-w-3xl mx-auto px-4">
-        <div className="flex gap-1 overflow-x-auto scrollbar-none py-2">
+        <div className="nav-tabs scrollbar-none">
           {sources.map(s => (
             <button
               key={s.key}
               onClick={() => scrollTo(s.key)}
-              className={`
-                flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium
-                transition-colors duration-150 whitespace-nowrap
-                ${active === s.key
-                  ? 'bg-gray-900 text-white'
-                  : 'text-gray-600 hover:bg-gray-100'
-                }
-              `}
+              className={`nav-tab ${active === s.key ? 'nav-tab-on' : 'hover:text-ink'}`}
             >
               {s.title}
             </button>

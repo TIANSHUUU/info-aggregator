@@ -7,16 +7,15 @@ dayjs.locale('zh-cn')
 
 export default function NewsSection({ title, source, items = [], loading, error, showSummary = false, note }) {
   return (
-    <div className="card mb-4">
-      {/* Section header */}
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="section-title mb-0">{title}</h2>
+    <section className="mb-7">
+      <div className="sec-bar-news">
+        <span className="sec-name"><span className="cn">{title}</span></span>
         {source && (
           <a
             href={source}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm text-gray-500 hover:text-gray-800 flex-shrink-0"
+            className="sec-src hover:underline"
           >
             前往源站 →
           </a>
@@ -27,53 +26,53 @@ export default function NewsSection({ title, source, items = [], loading, error,
       {loading && (
         <div className="space-y-3">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-5 bg-gray-100 rounded animate-pulse" />
+            <div key={i} className="skeleton h-5" />
           ))}
         </div>
       )}
 
       {/* Error state */}
       {error && (
-        <p className="text-sm text-gray-500">暂时无法获取内容，请稍后重试。</p>
+        <p className="font-body text-sm text-muted">暂时无法获取内容，请稍后重试。</p>
       )}
 
       {/* Date-unavailable note (e.g. Schwab) */}
       {note && !loading && !error && items.length > 0 && (
-        <p className="text-sm text-amber-600 mb-3 font-medium">{note}</p>
+        <p className="font-mono text-xs text-accent mb-3 tracking-wide">{note}</p>
       )}
 
       {/* Empty state */}
       {!loading && !error && items.length === 0 && (
-        <p className="text-sm text-gray-500">今日暂无更新。</p>
+        <p className="font-body text-sm text-muted">今日暂无更新。</p>
       )}
 
       {/* Article list */}
       {!loading && !error && items.length > 0 && (
         <ul>
           {items.map((item, i) => (
-            <li key={i} className="news-item">
-              <a
-                href={item.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[15px] leading-relaxed font-medium text-gray-900 block hover:text-blue-700"
-              >
-                {item.title}
-              </a>
-              {showSummary && item.summary && (
-                <p className="text-sm text-gray-600 mt-1.5 leading-relaxed">
-                  {item.summary}
-                </p>
-              )}
-              {item.date && (
-                <span className="text-xs text-gray-400 mt-1 block">
-                  {dayjs(item.date).fromNow()}
-                </span>
-              )}
+            <li key={i} className="news-row">
+              <span className="news-no">{String(i + 1).padStart(2, '0')}</span>
+              <div>
+                {i === 0 && <span className="stamp">最新</span>}
+                <a
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="headline"
+                >
+                  {item.title}
+                </a>
+                {showSummary && item.summary && (
+                  <p className="news-sum">{item.summary}</p>
+                )}
+                {item.date && (
+                  <div className="news-meta">{dayjs(item.date).fromNow()}</div>
+                )}
+              </div>
             </li>
           ))}
         </ul>
       )}
-    </div>
+    </section>
   )
 }

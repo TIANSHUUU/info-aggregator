@@ -22,19 +22,22 @@ export default function StockBar() {
   const byGroup = (key) => stocks.filter(s => s.market === key)
 
   return (
-    <div className="card mb-4">
-      <h2 className="section-title">实时行情</h2>
+    <section className="mb-7">
+      <div className="sec-bar-mkt">
+        <span className="sec-name"><span className="cn">实时行情</span> Markets</span>
+        <span className="sec-src text-neutral">每日 11:00 更新</span>
+      </div>
 
       {loading && (
         <div className="flex gap-3 flex-wrap">
-          {[...Array(11)].map((_, i) => (
-            <div key={i} className="h-12 w-20 bg-gray-100 rounded animate-pulse" />
+          {[...Array(9)].map((_, i) => (
+            <div key={i} className="skeleton h-12 w-24" />
           ))}
         </div>
       )}
 
       {!loading && stocks.length === 0 && (
-        <p className="text-sm text-gray-500">暂无数据</p>
+        <p className="font-body text-sm text-muted">暂无数据</p>
       )}
 
       {!loading && stocks.length > 0 && (
@@ -44,26 +47,22 @@ export default function StockBar() {
             if (!items.length) return null
             return (
               <div key={g.key}>
-                <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
-                  {g.label}
-                </div>
-                <div className="flex flex-wrap gap-x-2 gap-y-1">
-                  {items.map(s => <QuoteChip key={s.symbol} stock={s} />)}
+                <div className="mkt-group-label">{g.label}</div>
+                <div className="quotes">
+                  {items.map(s => <QuoteCell key={s.symbol} stock={s} />)}
                 </div>
               </div>
             )
           })}
         </div>
       )}
-
-      <p className="text-xs text-gray-400 mt-3 text-right">每日 11:00 更新</p>
-    </div>
+    </section>
   )
 }
 
-function QuoteChip({ stock }) {
+function QuoteCell({ stock }) {
   const up    = stock.change >= 0
-  const color = up ? 'text-red-600' : 'text-emerald-700'
+  const color = up ? 'text-up' : 'text-down'
   const sign  = up ? '+' : ''
 
   // Commodities show 2 decimals; large indices show commas
@@ -72,10 +71,10 @@ function QuoteChip({ stock }) {
     : stock.price.toLocaleString('zh-CN', { maximumFractionDigits: 2 })
 
   return (
-    <div className="flex flex-col items-center px-3 py-2 min-w-[82px] bg-gray-50 rounded-lg">
-      <span className="text-xs text-gray-500 font-medium mb-0.5 whitespace-nowrap">{stock.label}</span>
-      <span className="text-[15px] font-semibold tabular-nums text-gray-900">{priceStr}</span>
-      <span className={`text-xs tabular-nums font-medium ${color}`}>
+    <div className="quote-cell">
+      <span className="quote-lab">{stock.label}</span>
+      <span className="quote-px">{priceStr}</span>
+      <span className={`quote-pct ${color}`}>
         {sign}{stock.pct.toFixed(2)}%
       </span>
     </div>
