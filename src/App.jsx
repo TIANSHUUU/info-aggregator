@@ -108,28 +108,31 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Top header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-20 h-[52px] flex items-center">
+    <div className="min-h-screen bg-paper">
+      {/* Top masthead */}
+      <header className="bg-ink text-paper sticky top-0 z-20 h-[52px] flex items-center">
         <div className="max-w-3xl mx-auto px-4 w-full flex items-center justify-between">
-          <img src={`${BASE}logo.png`} alt="每日资讯" className="h-9 w-9 rounded-full object-cover" />
+          <div className="flex items-center gap-2.5">
+            <img src={`${BASE}logo.png`} alt="每日资讯" className="h-7 w-7 rounded-full object-cover" />
+            <span className="font-display font-semibold text-[19px] tracking-tight">每日资讯</span>
+          </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-500">
+            <span className="font-mono text-[10.5px] tracking-wide uppercase text-paper opacity-70">
               {lastUpdated
-                ? `更新于 ${dayjs(lastUpdated).format('MM/DD HH:mm')}`
-                : dayjs().format('MM月DD日')}
+                ? dayjs(lastUpdated).format('MM·DD HH:mm')
+                : dayjs().format('MM·DD')}
             </span>
             <button
               onClick={handleRefresh}
               disabled={refreshState === 'pending'}
-              className={`text-sm px-3 py-1 rounded-full border transition-all ${
+              className={`font-mono text-[11px] tracking-wide px-2.5 py-1 rounded border transition-colors duration-150 ${
                 refreshState === 'pending'
-                  ? 'border-gray-200 text-gray-400 cursor-not-allowed'
+                  ? 'border-paper text-paper opacity-40 cursor-not-allowed'
                   : refreshState === 'done'
-                  ? 'border-green-400 text-green-600'
+                  ? 'border-down text-down'
                   : refreshState === 'error'
-                  ? 'border-red-400 text-red-500'
-                  : 'border-gray-300 text-gray-600 hover:border-gray-500 hover:text-gray-900'
+                  ? 'border-up text-up'
+                  : 'border-orange text-orange hover:bg-orange hover:text-ink'
               }`}
             >
               {refreshState === 'pending' ? '更新中…' : refreshState === 'done' ? '已更新 ✓' : refreshState === 'error' ? '失败，重试' : '立即更新'}
@@ -159,7 +162,7 @@ export default function App() {
         ))}
       </main>
 
-      <footer className="text-center text-sm text-gray-400 py-8">
+      <footer className="border-t-2 border-ink text-center font-mono text-[10px] tracking-widest uppercase text-neutral py-5">
         每日 11:00 自动更新 · GitHub Actions
       </footer>
     </div>
