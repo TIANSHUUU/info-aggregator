@@ -3,31 +3,157 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /* 纸与线 */
+    --color-paper: oklch(97% 0.012 75);
+    --color-paper-2: oklch(94.5% 0.018 70);
+    --color-rule: oklch(84% 0.018 65);
+    --color-rule-2: oklch(74% 0.020 60);
+    /* 文字层级 */
+    --color-neutral: oklch(58% 0.015 60);
+    --color-muted: oklch(44% 0.018 55);
+    --color-ink: oklch(24% 0.022 50);
+    --color-accent-ink: oklch(98% 0.010 75);
+    /* 双油墨 + 高亮 */
+    --color-accent: oklch(52% 0.15 47);
+    --color-orange: oklch(63% 0.18 48);
+    --color-blue: oklch(47% 0.115 248);
+    --color-focus: oklch(52% 0.16 47);
+    /* 行情涨跌（红涨绿跌） */
+    --color-up: oklch(55% 0.18 25);
+    --color-down: oklch(52% 0.12 155);
+  }
+
   body {
-    @apply bg-gray-50 text-gray-900 antialiased;
+    @apply bg-paper text-ink antialiased font-body;
     font-size: 16px;
   }
+
+  /* halftone grain：全屏覆盖、不挡交互 */
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 50;
+    opacity: 0.045;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
   a {
-    @apply text-blue-700 hover:text-blue-900 hover:underline transition-colors duration-150;
+    @apply transition-colors duration-150;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
   }
 }
 
 @layer components {
-  .card {
-    @apply bg-white rounded-xl border border-gray-200 p-5 shadow-sm;
+  /* ===== 章节条 ===== */
+  .sec-bar-news {
+    @apply flex items-center justify-between px-3 py-1.5 mb-3 bg-accent text-accent-ink;
+  }
+  .sec-bar-cast {
+    @apply flex items-center justify-between px-3 py-1.5 mb-3 bg-blue text-accent-ink;
+  }
+  .sec-bar-mkt {
+    @apply flex items-center justify-between py-1.5 mb-3 border-y-2 border-ink text-ink;
+  }
+  .sec-name {
+    @apply font-mono text-[12.5px] font-semibold tracking-[0.1em] uppercase flex items-baseline gap-2;
+  }
+  .sec-name .cn {
+    @apply font-display text-sm font-semibold tracking-normal normal-case;
+  }
+  .sec-src {
+    @apply font-mono text-[10px] tracking-[0.03em] opacity-90;
   }
 
-  /* Section header label */
-  .section-title {
-    @apply text-sm font-bold uppercase tracking-wider text-gray-900 mb-3;
+  /* ===== 新闻行 ===== */
+  .news-row {
+    @apply flex gap-3 py-3 border-b border-rule last:border-0;
+  }
+  .news-no {
+    @apply font-mono font-semibold text-[13px] text-accent flex-shrink-0 w-5 pt-[3px];
+  }
+  .headline {
+    @apply font-display font-semibold text-[15.5px] leading-snug text-ink transition-all duration-150;
+  }
+  .headline:hover {
+    @apply text-blue;
+    text-shadow: 2px 2px 0 oklch(47% 0.115 248 / 0.16);
+  }
+  .news-sum {
+    @apply font-body text-[13.5px] text-muted leading-relaxed mt-1.5;
+  }
+  .news-meta {
+    @apply font-mono text-[10px] text-neutral mt-1.5 tracking-[0.03em];
+  }
+  .stamp {
+    @apply font-mono text-[9px] tracking-[0.05em] uppercase text-accent border border-accent rounded-[3px] px-1.5 py-px mr-1.5 whitespace-nowrap;
   }
 
-  /* Each news row */
-  .news-item {
-    @apply py-3 border-b border-gray-100 last:border-0;
+  /* ===== 行情 ===== */
+  .mkt-group-label {
+    @apply font-mono text-[9.5px] font-semibold tracking-[0.14em] uppercase text-neutral mb-1.5;
+  }
+  .quotes {
+    @apply flex flex-wrap border-2 border-ink;
+  }
+  .quote-cell {
+    @apply flex-1 text-center px-1 py-[7px] border-r border-b border-rule-2;
+    min-width: 33.33%;
+  }
+  .quote-lab {
+    @apply font-mono text-[9px] tracking-[0.04em] uppercase text-neutral block;
+  }
+  .quote-px {
+    @apply font-display text-[15px] font-semibold text-ink block mt-px tabular-nums;
+  }
+  .quote-pct {
+    @apply font-mono text-[11px] font-semibold tabular-nums;
   }
 
-  /* Hide scrollbar for nav tabs */
+  /* ===== 播客 ===== */
+  .ep-title {
+    @apply font-display font-semibold text-base leading-snug text-ink transition-colors duration-150;
+  }
+  .ep-title:hover {
+    @apply text-blue;
+  }
+  .ep-date {
+    @apply font-mono text-[10px] text-neutral tracking-[0.03em];
+  }
+  .cast-sec-h {
+    @apply font-mono text-[11px] font-semibold tracking-[0.1em] uppercase text-blue mb-1.5;
+  }
+  .cast-point {
+    @apply font-body text-[13.5px] leading-relaxed text-ink flex gap-2;
+  }
+  .cast-tag-label {
+    @apply font-mono text-[9.5px] tracking-[0.06em] uppercase text-neutral mr-2;
+  }
+  .cast-tag {
+    @apply inline-block font-mono text-[10.5px] text-ink border border-rule-2 rounded-[3px] px-1.5 py-px mr-1 mb-1;
+  }
+
+  /* ===== 导航 ===== */
+  .nav-tabs {
+    @apply flex gap-1 overflow-x-auto py-2;
+  }
+  .nav-tab {
+    @apply font-mono text-[11px] font-medium tracking-[0.05em] uppercase whitespace-nowrap px-[11px] py-[5px] text-muted rounded-[3px] flex-shrink-0 transition-colors duration-150;
+  }
+  .nav-tab-on {
+    @apply bg-accent text-accent-ink;
+  }
+
+  /* ===== 杂项 ===== */
+  .skeleton {
+    @apply bg-paper-2 rounded animate-pulse;
+  }
   .scrollbar-none {
     scrollbar-width: none;
     -ms-overflow-style: none;
