@@ -25,9 +25,6 @@ const SOURCES = [
   { key: 'hket',     title: 'HKET',           source: 'https://china.hket.com/srac002/%E5%8D%B3%E6%99%82%E4%B8%AD%E5%9C%8B', showSummary: false },
 ]
 
-const DISPATCH_URL = 'https://api.github.com/repos/TIANSHUUU/info-aggregator/actions/workflows/update.yml/dispatches'
-const FRONTEND_TOKEN = import.meta.env.VITE_GITHUB_TOKEN
-
 export default function App() {
   const [data, setData] = useState({})
   const [loadingMap, setLoadingMap] = useState(
@@ -37,13 +34,13 @@ export default function App() {
   const [equitymates, setEquitymates] = useState(null)
   const [peakprosperity, setPeakprosperity] = useState(null)
   const [lastUpdated, setLastUpdated] = useState(null)
-  const [refreshState, setRefreshState] = useState('idle') // idle | pending | done | error
+  const [refreshState, setRefreshState] = useState('idle') // idle | pending | done
 
   const PODCAST_SETTERS = { equitymates: setEquitymates, peakprosperity: setPeakprosperity }
 
   function loadAll() {
     const t = Date.now()
-    SOURCES.forEach(({ key }) => {
+    return Promise.allSettled(SOURCES.map(({ key }) =>
       loadJson(`${key}?t=${t}`)
         .then(d => {
           if (key in PODCAST_SETTERS) PODCAST_SETTERS[key](d)
@@ -54,7 +51,7 @@ export default function App() {
           setLoadingMap(prev => ({ ...prev, [key]: false }))
           setErrorMap(prev => ({ ...prev, [key]: true }))
         })
-    })
+    ))
   }
 
   useEffect(() => {
@@ -64,47 +61,18 @@ export default function App() {
     loadAll()
   }, [])
 
+  // Reload the latest published data (does NOT trigger a fresh server-side
+  // fetch — that runs daily via the workflow's cron schedule). No token needed.
   async function handleRefresh() {
     if (refreshState === 'pending') return
     setRefreshState('pending')
-
     try {
-      const res = await fetch(DISPATCH_URL, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${FRONTEND_TOKEN}`,
-          Accept: 'application/vnd.github.v3+json',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ ref: 'main' }),
-      })
-      if (res.status !== 204) throw new Error(`dispatch ${res.status}`)
-    } catch {
-      setRefreshState('error')
-      setTimeout(() => setRefreshState('idle'), 3000)
-      return
-    }
-
-    // Poll meta.json until updated_at changes (max 5 min)
-    const baseline = lastUpdated
-    const deadline = Date.now() + 5 * 60 * 1000
-    const poll = setInterval(async () => {
-      try {
-        const meta = await loadJson(`meta?t=${Date.now()}`)
-        if (meta.updated_at !== baseline) {
-          clearInterval(poll)
-          setLastUpdated(meta.updated_at)
-          setRefreshState('done')
-          loadAll()
-          setTimeout(() => setRefreshState('idle'), 3000)
-        }
-      } catch {}
-      if (Date.now() > deadline) {
-        clearInterval(poll)
-        setRefreshState('error')
-        setTimeout(() => setRefreshState('idle'), 3000)
-      }
-    }, 15000)
+      const meta = await loadJson(`meta?t=${Date.now()}`)
+      setLastUpdated(meta.updated_at)
+    } catch {}
+    await loadAll()
+    setRefreshState('done')
+    setTimeout(() => setRefreshState('idle'), 2500)
   }
 
   return (
@@ -130,12 +98,10 @@ export default function App() {
                   ? 'border-paper text-paper opacity-40 cursor-not-allowed'
                   : refreshState === 'done'
                   ? 'border-down text-down'
-                  : refreshState === 'error'
-                  ? 'border-up text-up'
                   : 'border-orange text-orange hover:bg-orange hover:text-ink'
               }`}
             >
-              {refreshState === 'pending' ? '更新中…' : refreshState === 'done' ? '已更新 ✓' : refreshState === 'error' ? '失败，重试' : '立即更新'}
+              {refreshState === 'pending' ? '刷新中…' : refreshState === 'done' ? '已刷新 ✓' : '立即更新'}
             </button>
           </div>
         </div>
@@ -163,7 +129,7 @@ export default function App() {
       </main>
 
       <footer className="border-t-2 border-ink text-center font-mono text-[10px] tracking-widest uppercase text-neutral py-5">
-        每日 11:00 自动更新 · GitHub Actions
+        每日 13:30（墨尔本）自动更新 · GitHub Actions
       </footer>
     </div>
   )

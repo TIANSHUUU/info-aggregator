@@ -211,9 +211,15 @@ fontFamily: {
 
 ---
 
-## 附录 B — 已知安全隐患：前端 GitHub Token 暴露（独立后续任务，不在本次 scope）
+## 附录 B — 安全隐患修复记录：前端 GitHub Token 暴露（✅ 已修复 2026-06-24）
 
-**问题**：`App.jsx` 的「立即更新」按钮用 `import.meta.env.VITE_GITHUB_TOKEN` 在浏览器端直接 `POST` GitHub Actions `workflow_dispatch`。Vite 在 build 时把该值内联进 `dist/assets/index-*.js`；站点部署于 GitHub Pages（公开），故**任何访客都能从源码读出 token 并滥用**（刷 Actions 额度，或视 token 权限造成更大影响）。已在构建产物中确认明文 `Bearer <token>`。
+**✅ 修复方案（已实施）：方案 1 + 按钮重载数据 + 每日 cron**
+- `App.jsx`：删除 `DISPATCH_URL` / `VITE_GITHUB_TOKEN` 引用；「立即更新」按钮改为重新拉取 meta + 所有源 JSON（`no-store`），不再触发 `workflow_dispatch`、不再需要任何 token。
+- `update.yml`：删除 Build step 注入的 `VITE_GITHUB_TOKEN`；新增 `schedule: cron '30 3 * * *'`（≈墨尔本 13:30，夏令时 AEDT 期间漂到 14:30），实现真正的每日自动抓取（此前仅靠不可靠的外部 trigger，从未稳定每日运行）。
+- **待用户手动**：GitHub 删除 `VITE_GITHUB_TOKEN` secret、吊销对应 PAT、（可选）删 `.env.local` 中该行。
+- **未来若需"手机一键强制重抓"**：再加方案 2（serverless 代理），与本修复叠加、无返工。
+
+**问题（原始记录）**：`App.jsx` 的「立即更新」按钮用 `import.meta.env.VITE_GITHUB_TOKEN` 在浏览器端直接 `POST` GitHub Actions `workflow_dispatch`。Vite 在 build 时把该值内联进 `dist/assets/index-*.js`；站点部署于 GitHub Pages（公开），故**任何访客都能从源码读出 token 并滥用**（刷 Actions 额度，或视 token 权限造成更大影响）。已在构建产物中确认明文 `Bearer <token>`。
 
 **修复选项**（择一，待用户决定后另起任务）：
 1. **移除前端手动触发**：删按钮 + token，仅靠定时 remote trigger。最简单最安全，代价是失去「立即更新」。
