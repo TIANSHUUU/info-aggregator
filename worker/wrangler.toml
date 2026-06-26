@@ -1,0 +1,4 @@
+name = "infoaggre-refresh"
+main = "trigger-refresh.js"
+compatibility_date = "2025-01-01"
+# GH_TOKEN 不写在此处，用 `npx wrangler secret put GH_TOKEN` 注入为加密 Secret

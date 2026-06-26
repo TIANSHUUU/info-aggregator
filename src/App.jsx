@@ -7,6 +7,9 @@ import NavBar from './components/NavBar'
 
 const BASE = import.meta.env.BASE_URL
 
+// Cloudflare Worker 端点：校验 Origin + 60s 节流后触发 workflow_dispatch（token 在 Worker，不在前端）
+const REFRESH_ENDPOINT = 'https://infoaggre-refresh.tianshu-tan.workers.dev'
+
 async function loadJson(nameWithQuery) {
   const [name, qs] = nameWithQuery.split('?')
   const url = `${BASE}data/${name}.json${qs ? '?' + qs : ''}`
@@ -34,7 +37,7 @@ export default function App() {
   const [equitymates, setEquitymates] = useState(null)
   const [peakprosperity, setPeakprosperity] = useState(null)
   const [lastUpdated, setLastUpdated] = useState(null)
-  const [refreshState, setRefreshState] = useState('idle') // idle | pending | done
+  const [refreshState, setRefreshState] = useState('idle') // idle | pending | done | error
 
   const PODCAST_SETTERS = { equitymates: setEquitymates, peakprosperity: setPeakprosperity }
 
@@ -61,18 +64,41 @@ export default function App() {
     loadAll()
   }, [])
 
-  // Reload the latest published data (does NOT trigger a fresh server-side
-  // fetch — that runs daily via the workflow's cron schedule). No token needed.
+  // 触发服务端重新抓取（经 Cloudflare Worker，前端不持 token），
+  // 然后轮询 meta.json 直到 updated_at 变化。
   async function handleRefresh() {
     if (refreshState === 'pending') return
     setRefreshState('pending')
+
     try {
-      const meta = await loadJson(`meta?t=${Date.now()}`)
-      setLastUpdated(meta.updated_at)
-    } catch {}
-    await loadAll()
-    setRefreshState('done')
-    setTimeout(() => setRefreshState('idle'), 2500)
+      const res = await fetch(REFRESH_ENDPOINT, { method: 'POST' })
+      if (!res.ok) throw new Error(`trigger ${res.status}`)
+    } catch {
+      setRefreshState('error')
+      setTimeout(() => setRefreshState('idle'), 3000)
+      return
+    }
+
+    // 轮询 meta 直到 updated_at 变化（最多 5 分钟）
+    const baseline = lastUpdated
+    const deadline = Date.now() + 5 * 60 * 1000
+    const poll = setInterval(async () => {
+      try {
+        const meta = await loadJson(`meta?t=${Date.now()}`)
+        if (meta.updated_at !== baseline) {
+          clearInterval(poll)
+          setLastUpdated(meta.updated_at)
+          setRefreshState('done')
+          await loadAll()
+          setTimeout(() => setRefreshState('idle'), 3000)
+        }
+      } catch {}
+      if (Date.now() > deadline) {
+        clearInterval(poll)
+        setRefreshState('error')
+        setTimeout(() => setRefreshState('idle'), 3000)
+      }
+    }, 15000)
   }
 
   return (
@@ -98,10 +124,12 @@ export default function App() {
                   ? 'border-paper text-paper opacity-40 cursor-not-allowed'
                   : refreshState === 'done'
                   ? 'border-down text-down'
+                  : refreshState === 'error'
+                  ? 'border-up text-up'
                   : 'border-orange text-orange hover:bg-orange hover:text-ink'
               }`}
             >
-              {refreshState === 'pending' ? '刷新中…' : refreshState === 'done' ? '已刷新 ✓' : '立即更新'}
+              {refreshState === 'pending' ? '更新中…' : refreshState === 'done' ? '已更新 ✓' : refreshState === 'error' ? '失败，重试' : '立即更新'}
             </button>
           </div>
         </div>
@@ -129,7 +157,7 @@ export default function App() {
       </main>
 
       <footer className="border-t-2 border-ink text-center font-mono text-[10px] tracking-widest uppercase text-neutral py-5">
-        每日 13:30（墨尔本）自动更新 · GitHub Actions
+        每日 13:41（墨尔本）自动更新 · GitHub Actions
       </footer>
     </div>
   )

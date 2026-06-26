@@ -10,3 +10,5 @@ __pycache__/
 *.pages
 .env.local
 .superpowers/
+worker/.wrangler/
+worker/node_modules/

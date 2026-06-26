@@ -219,6 +219,12 @@ fontFamily: {
 - **待用户手动**：GitHub 删除 `VITE_GITHUB_TOKEN` secret、吊销对应 PAT、（可选）删 `.env.local` 中该行。
 - **未来若需"手机一键强制重抓"**：再加方案 2（serverless 代理），与本修复叠加、无返工。
 
+**🔼 升级（2026-06-25）：方案 2 — Cloudflare Worker 代理，恢复"真·触发抓取"按钮**
+- 新增 `worker/`（Cloudflare Worker）：持有 fine-grained PAT（仅本仓库 `actions:write`），校验 `Origin` + 60s 节流后触发 `workflow_dispatch`。token 仍不进前端。
+- `App.jsx`：`handleRefresh` 改为 POST 该 Worker，再轮询 meta 等抓取完成；按钮恢复 4 态。
+- cron 错峰到 `41 3 * * *`（≈墨尔本 13:41）。
+- 设计详见 `docs/superpowers/specs/2026-06-25-manual-refresh-worker.md`。
+
 **问题（原始记录）**：`App.jsx` 的「立即更新」按钮用 `import.meta.env.VITE_GITHUB_TOKEN` 在浏览器端直接 `POST` GitHub Actions `workflow_dispatch`。Vite 在 build 时把该值内联进 `dist/assets/index-*.js`；站点部署于 GitHub Pages（公开），故**任何访客都能从源码读出 token 并滥用**（刷 Actions 额度，或视 token 权限造成更大影响）。已在构建产物中确认明文 `Bearer <token>`。
 
 **修复选项**（择一，待用户决定后另起任务）：
