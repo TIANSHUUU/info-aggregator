@@ -7,8 +7,8 @@ import NavBar from './components/NavBar'
 
 const BASE = import.meta.env.BASE_URL
 
-// 部署 Cloudflare Worker 后，把下面替换成真实的 Worker 网址（见 plan Task 6）
-const REFRESH_ENDPOINT = 'https://REPLACE_WITH_WORKER_URL'
+// Cloudflare Worker 端点：校验 Origin + 60s 节流后触发 workflow_dispatch（token 在 Worker，不在前端）
+const REFRESH_ENDPOINT = 'https://infoaggre-refresh.tianshu-tan.workers.dev'
 
 async function loadJson(nameWithQuery) {
   const [name, qs] = nameWithQuery.split('?')
