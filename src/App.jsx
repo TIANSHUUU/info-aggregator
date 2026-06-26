@@ -19,10 +19,9 @@ async function loadJson(nameWithQuery) {
 }
 
 const SOURCES = [
-  { key: 'initium',  title: '端传媒',         source: 'https://theinitium.com/',                                          showSummary: false },
   { key: 'caixin',   title: '财新',            source: 'https://www.caixin.com/',                                          showSummary: true  },
   { key: 'schwab',   title: 'Charles Schwab', source: 'https://www.schwab.com/learn/market-commentary',                   showSummary: true, note: '日期信息暂不可用，以下为最新文章' },
-  { key: 'peakprosperity', title: 'Peak', source: 'https://peakprosperity.com/', showSummary: false },
+  { key: 'initium',  title: '端传媒',         source: 'https://theinitium.com/',                                          showSummary: false },
   { key: 'gorozen',  title: 'Gorozen',        source: 'https://blog.gorozen.com/blog',                                        showSummary: true  },
   { key: 'equitymates',    title: '🇦🇺 Equity',    source: 'https://equitymates.com/show/equity-mates-investing-podcast/', showSummary: false },
   { key: 'hket',     title: 'HKET',           source: 'https://china.hket.com/srac002/%E5%8D%B3%E6%99%82%E4%B8%AD%E5%9C%8B', showSummary: false },
@@ -31,15 +30,14 @@ const SOURCES = [
 export default function App() {
   const [data, setData] = useState({})
   const [loadingMap, setLoadingMap] = useState(
-    Object.fromEntries([...SOURCES.map(s => [s.key, true]), ['equitymates', true], ['peakprosperity', true]])
+    Object.fromEntries(SOURCES.map(s => [s.key, true]))
   )
   const [errorMap, setErrorMap] = useState({})
   const [equitymates, setEquitymates] = useState(null)
-  const [peakprosperity, setPeakprosperity] = useState(null)
   const [lastUpdated, setLastUpdated] = useState(null)
   const [refreshState, setRefreshState] = useState('idle') // idle | pending | done | error
 
-  const PODCAST_SETTERS = { equitymates: setEquitymates, peakprosperity: setPeakprosperity }
+  const PODCAST_SETTERS = { equitymates: setEquitymates }
 
   function loadAll() {
     const t = Date.now()
@@ -147,8 +145,6 @@ export default function App() {
           <div id={`section-${s.key}`} key={s.key}>
             {s.key === 'equitymates' ? (
               <PodcastSection title="🇦🇺 Equity Mates" data={equitymates} loading={loadingMap['equitymates']} error={errorMap['equitymates']} />
-            ) : s.key === 'peakprosperity' ? (
-              <PodcastSection title="Peak" data={peakprosperity} loading={loadingMap['peakprosperity']} error={errorMap['peakprosperity']} />
             ) : (
               <NewsSection title={s.title} source={s.source} items={data[s.key] || []} loading={loadingMap[s.key]} error={errorMap[s.key]} showSummary={s.showSummary} note={s.note} />
             )}
