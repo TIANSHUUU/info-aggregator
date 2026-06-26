@@ -3,7 +3,7 @@ name: 每日数据更新 + 部署
 on:
   workflow_dispatch:        # 手动触发（gh workflow run / Actions 页面）
   schedule:
-    - cron: '30 3 * * *'    # 每天 03:30 UTC ≈ 墨尔本 13:30（AEST；夏令时 AEDT 期间为 14:30）
+    - cron: '41 3 * * *'    # 每天 03:41 UTC ≈ 墨尔本 13:41（AEST；夏令时 AEDT 期间为 14:41）；错峰非整点降低排队
 
 permissions:
   contents: read
