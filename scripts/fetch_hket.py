@@ -1,26 +1,21 @@
 """
-香港經濟日報 (HKET) 兩岸新聞 — RSS feed https://www.hket.com/rss/china
+香港經濟日報 (HKET) 兩岸新聞 — 经 Cloudflare Worker 代抓 RSS。
 
-改用官方 RSS：原先抓 HTML 列表页 (china.hket.com/srac002/...) 会被 HKET 反爬
-对数据中心 IP（GitHub Actions）返回 405，导致 CI 抓到空。RSS 端点对聚合器友好，
-且自带 pubDate（原 HTML 抓法 date 恒为 null）。对标 fetch_initium.py 的 RSS 写法。
+HKET 反爬封数据中心/代理 IP（GitHub Actions、jina 等直连 RSS/HTML 均 405），
+故通过项目自有的 Cloudflare Worker（出口为 Cloudflare IP，未被封）代抓
+https://www.hket.com/rss/china 并原样返回 RSS XML。解析同 fetch_initium.py，
+pubDate 转 ISO 日期。
 """
 from email.utils import parsedate_to_datetime
 import xml.etree.ElementTree as ET
 import requests
 
-RSS_URL = "https://www.hket.com/rss/china"
+# Worker 的 /hket 路由代抓 HKET RSS（见 worker/trigger-refresh.js）
+RSS_URL = "https://infoaggre-refresh.tianshu-tan.workers.dev/hket"
 
-# 用完整浏览器 UA：HKET 对简化/bot UA 会返回 403。
 HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/124.0.0.0 Safari/537.36"
-    ),
+    "User-Agent": "infoaggre-fetch/1.0 (+https://github.com/TIANSHUUU/info-aggregator)",
     "Accept": "application/rss+xml, application/xml, text/xml, */*",
-    "Accept-Language": "zh-HK,zh;q=0.9,en;q=0.8",
-    "Referer": "https://www.hket.com/rss",
 }
 
 

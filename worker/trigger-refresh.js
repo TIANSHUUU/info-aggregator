@@ -16,9 +16,31 @@ const json = (obj, status, origin) =>
     headers: { 'Content-Type': 'application/json', ...corsHeaders(origin) },
   })
 
+const HKET_RSS = 'https://www.hket.com/rss/china'
+
 export default {
   async fetch(request, env) {
     const origin = request.headers.get('Origin') || ''
+    const url = new URL(request.url)
+
+    // GET /hket —— 代抓 HKET RSS。HKET 反爬封数据中心 IP（CI/jina 直连 405），
+    // 由 Cloudflare 出口 IP 代抓。URL 写死，不接受任意 url 参数，避免成为开放代理。
+    if (request.method === 'GET' && url.pathname === '/hket') {
+      const upstream = await fetch(HKET_RSS, {
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) ' +
+            'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+          'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+          'Accept-Language': 'zh-HK,zh;q=0.9,en;q=0.8',
+          'Referer': 'https://www.hket.com/rss',
+        },
+      })
+      return new Response(await upstream.text(), {
+        status: upstream.status,
+        headers: { 'Content-Type': 'application/xml; charset=utf-8' },
+      })
+    }
 
     if (request.method === 'OPTIONS')
       return new Response(null, { status: 204, headers: corsHeaders(origin) })
