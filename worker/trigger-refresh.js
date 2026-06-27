@@ -16,31 +16,9 @@ const json = (obj, status, origin) =>
     headers: { 'Content-Type': 'application/json', ...corsHeaders(origin) },
   })
 
-const HKET_PAGE = 'https://china.hket.com/srac002/%E5%8D%B3%E6%99%82%E4%B8%AD%E5%9C%8B'
-
 export default {
   async fetch(request, env) {
     const origin = request.headers.get('Origin') || ''
-    const url = new URL(request.url)
-
-    // GET /hket —— 代抓 HKET「即時中國」HTML 列表页（内容比 RSS 丰富）。HKET 反爬封
-    // 数据中心 IP（CI/jina 直连 405），由 Cloudflare 出口代抓。URL 写死，非开放代理。
-    if (request.method === 'GET' && url.pathname === '/hket') {
-      const upstream = await fetch(HKET_PAGE, {
-        headers: {
-          'User-Agent':
-            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) ' +
-            'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'Accept-Language': 'zh-HK,zh;q=0.9,en;q=0.8',
-          'Referer': 'https://china.hket.com/',
-        },
-      })
-      return new Response(await upstream.text(), {
-        status: upstream.status,
-        headers: { 'Content-Type': 'text/html; charset=utf-8' },
-      })
-    }
 
     if (request.method === 'OPTIONS')
       return new Response(null, { status: 204, headers: corsHeaders(origin) })

@@ -24,7 +24,6 @@ const SOURCES = [
   { key: 'initium',  title: '端传媒',         source: 'https://theinitium.com/',                                          showSummary: false },
   { key: 'gorozen',  title: 'Gorozen',        source: 'https://blog.gorozen.com/blog',                                        showSummary: true  },
   { key: 'equitymates',    title: '🇦🇺 Equity',    source: 'https://equitymates.com/show/equity-mates-investing-podcast/', showSummary: false },
-  { key: 'hket',     title: 'HKET',           source: 'https://china.hket.com/srac002/%E5%8D%B3%E6%99%82%E4%B8%AD%E5%9C%8B', showSummary: false },
 ]
 
 export default function App() {
