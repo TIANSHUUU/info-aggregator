@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 import fetch_initium
 import fetch_caixin
 import fetch_schwab
+import fetch_goldman
 import fetch_gorozen
 import fetch_equitymates
 import fetch_stocks
@@ -40,6 +41,7 @@ def main():
         "initium":  fetch_initium.fetch,
         "caixin":   fetch_caixin.fetch,
         "schwab":   fetch_schwab.fetch,
+        "goldman":  fetch_goldman.fetch,
         "gorozen":  fetch_gorozen.fetch,
     }
 
