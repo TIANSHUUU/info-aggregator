@@ -21,6 +21,7 @@ async function loadJson(nameWithQuery) {
 const SOURCES = [
   { key: 'caixin',   title: '财新',            source: 'https://www.caixin.com/',                                          showSummary: true  },
   { key: 'schwab',   title: 'Charles Schwab', source: 'https://www.schwab.com/learn/market-commentary',                   showSummary: true, note: '日期信息暂不可用，以下为最新文章' },
+  { key: 'goldman',  title: '高盛',           source: 'https://www.goldmansachs.com/insights',                            showSummary: true },
   { key: 'initium',  title: '端传媒',         source: 'https://theinitium.com/',                                          showSummary: false },
   { key: 'gorozen',  title: 'Gorozen',        source: 'https://blog.gorozen.com/blog',                                        showSummary: true  },
   { key: 'equitymates',    title: '🇦🇺 Equity',    source: 'https://equitymates.com/show/equity-mates-investing-podcast/', showSummary: false },
