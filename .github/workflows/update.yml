@@ -1,9 +1,11 @@
 name: 每日数据更新 + 部署
 
 on:
-  workflow_dispatch:        # 手动触发（gh workflow run / Actions 页面）
-  schedule:
-    - cron: '41 3 * * *'    # 每天 03:41 UTC ≈ 墨尔本 13:41（AEST；夏令时 AEDT 期间为 14:41）；错峰非整点降低排队
+  workflow_dispatch:        # 手动触发（gh workflow run / Actions 页面 / 站内「立即更新」按钮）
+  # 已移除每日 schedule 定时抓取：抓取常失败会持续发送 GitHub Actions 失败邮件，
+  # 且站内已有「立即更新」按钮可随时手动触发。如需恢复每日自动，加回下面两行即可：
+  # schedule:
+  #   - cron: '41 3 * * *'    # 每天 03:41 UTC ≈ 墨尔本 13:41（AEST；夏令时 AEDT 为 14:41）
 
 permissions:
   contents: read
